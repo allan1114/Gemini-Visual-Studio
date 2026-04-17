@@ -40,7 +40,12 @@ export default [
         HTMLDivElement: 'readonly',
         HTMLInputElement: 'readonly',
         HTMLElement: 'readonly',
+        HTMLCanvasElement: 'readonly',
+        HTMLImageElement: 'readonly',
         SVGSVGElement: 'readonly',
+        SVGCircleElement: 'readonly',
+        Image: 'readonly',
+        navigator: 'readonly',
         alert: 'readonly',
         confirm: 'readonly'
       }
