@@ -24,7 +24,25 @@ export default [
         window: 'readonly',
         document: 'readonly',
         fetch: 'readonly',
-        localStorage: 'readonly'
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        Blob: 'readonly',
+        File: 'readonly',
+        FileReader: 'readonly',
+        FormData: 'readonly',
+        crypto: 'readonly',
+        HTMLDivElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLElement: 'readonly',
+        SVGSVGElement: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly'
       }
     },
     plugins: {
@@ -42,3 +60,4 @@ export default [
     }
   }
 ];
+

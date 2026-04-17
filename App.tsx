@@ -7,6 +7,8 @@ import { DBService } from './services/dbService';
 import { StorageService } from './services/storageService';
 import { ImageProcessingService } from './services/imageProcessingService';
 import { SupabaseService, supabase } from './services/supabaseService';
+import { AuthService } from './services/authService';
+import { SyncOrchestrator } from './services/syncOrchestrator';
 
 // Views
 import GenerateView from './components/GenerateView';
@@ -151,32 +153,21 @@ const App: React.FC = () => {
   };
 
   const syncOnLogin = async (loggedUser: User) => {
-    if (!loggedUser || loggedUser.id === 'anon') {
-      await refreshData(loggedUser);
-      return;
-    }
-    
-    if (isSyncing) return;
-    
     setIsSyncing(true);
     setNetworkError(null);
-    try {
-      console.log("[Sync] Starting sync for user:", loggedUser.id);
-      const mergedEntries = await StorageService.performFullSync(loggedUser.id);
-      setAllEntries(mergedEntries);
-      const loadedPresets = await StorageService.getPresets(loggedUser.id);
-      setPresets(loadedPresets || []);
-      setLastSynced(Date.now());
-    } catch (err: any) {
-      console.error("[Sync] Sync on login failed:", err);
-      if (err.message === 'SYNC_TIMEOUT') {
-        setNetworkError(language === 'zh' ? '同步超時，部分項目可能尚未同步。' : 'Sync timed out. Some items may not be synced.');
-      } else if (err.message && err.message.includes('Failed to fetch')) {
-        setNetworkError(t.fetchError);
+    await SyncOrchestrator.syncOnLogin(
+      loggedUser,
+      (entries, presets) => {
+        setAllEntries(entries);
+        setPresets(presets);
+        setLastSynced(Date.now());
+        setIsSyncing(false);
+      },
+      (error) => {
+        setNetworkError(error);
+        setIsSyncing(false);
       }
-    } finally {
-      setIsSyncing(false);
-    }
+    );
   };
 
   useEffect(() => {
@@ -263,20 +254,16 @@ const App: React.FC = () => {
 
   const handleCloudSync = async () => {
     if (!user || user.id === 'anon') return;
-    setIsSyncing(true);
-    setNetworkError(null);
-    try {
-      const merged = await StorageService.performFullSync(user.id);
-      setAllEntries(merged);
-      setLastSynced(Date.now());
-    } catch (err: any) {
-      console.error("Cloud sync failed:", err);
-      if (err.message && err.message.includes('Failed to fetch')) {
-        setNetworkError(t.fetchError);
+    await SyncOrchestrator.performCloudSync(
+      user.id,
+      (entries) => {
+        setAllEntries(entries);
+        setLastSynced(Date.now());
+      },
+      (error) => {
+        setNetworkError(error);
       }
-    } finally {
-      setIsSyncing(false);
-    }
+    );
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -285,13 +272,12 @@ const App: React.FC = () => {
     setAuthError(null);
     try {
       if (authMode === 'signup') {
-        await SupabaseService.signUp(authForm.email, authForm.password);
+        await AuthService.signUp(authForm.email, authForm.password);
         alert(language === 'zh' ? '註冊成功，請檢查您的電子郵件進行驗證。' : 'Sign up successful! Please check your email for verification.');
       } else {
-        await SupabaseService.signIn(authForm.email, authForm.password);
-        // We don't manually set user/view here; onAuthStateChange will handle it
+        await AuthService.signIn(authForm.email, authForm.password);
       }
-    } catch (err: any) { 
+    } catch (err: any) {
       if (err.message && err.message.includes('Failed to fetch')) {
         setAuthError(language === 'zh' ? '網路連接失敗，請檢查您的網路設定。' : 'Network connection failed. Please check your internet connection.');
       } else {
@@ -311,7 +297,7 @@ const App: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      await SupabaseService.signInWithGoogle();
+      await AuthService.signInWithGoogle();
     } catch (err: any) {
       if (err.message && err.message.includes('Failed to fetch')) {
         setAuthError(language === 'zh' ? '網路連接失敗，請檢查您的網路設定。' : 'Network connection failed. Please check your internet connection.');
@@ -329,7 +315,7 @@ const App: React.FC = () => {
       return;
     }
     try {
-      await SupabaseService.signOut();
+      await AuthService.signOut();
     } catch (err: any) {
       console.error("Sign out error:", err);
       if (err.message && err.message.includes('Failed to fetch')) {
