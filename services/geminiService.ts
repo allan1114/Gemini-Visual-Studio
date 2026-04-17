@@ -45,16 +45,13 @@ export class GeminiService {
       if (activeKey) return new GoogleGenAI({ apiKey: activeKey.key });
     }
 
-    const studioKey = (process.env as any).API_KEY;
-    const defaultKey = (process.env as any).GEMINI_API_KEY;
-    
-    const apiKey = (studioKey && studioKey.trim()) || (defaultKey && defaultKey.trim());
-    
+    const apiKey = (import.meta.env.VITE_GEMINI_API_KEY as string || '').trim();
+
     if (!apiKey) {
-      console.warn("[Gemini] API key is missing or empty string");
+      console.warn("[Gemini] API key is missing. Set VITE_GEMINI_API_KEY in .env.local");
       throw new Error("API_KEY_MISSING");
     }
-    
+
     return new GoogleGenAI({ apiKey });
   }
 

@@ -2,8 +2,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { User } from '../types';
 
-const SUPABASE_URL = (process.env as any).SUPABASE_URL || 'https://aeslmmljwjhfjdliluzh.supabase.co';
-const SUPABASE_ANON_KEY = (process.env as any).SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc2xtbWxqd2poZmpkbGlsdXpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5Nzc0NTQsImV4cCI6MjA4NTU1MzQ1NH0.m5Jjq9n53d2LVgHfTYUdjYLCZqbg-b7eOgpBLA56a0o';
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string) || '';
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('[Supabase] Missing environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set in .env.local');
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
