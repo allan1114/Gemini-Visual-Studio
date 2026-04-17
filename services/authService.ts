@@ -1,12 +1,14 @@
 import { User } from '../types';
 import { SupabaseService, supabase } from './supabaseService';
 
+/** Current user authentication state */
 export interface AuthState {
   user: User | null;
   isLoading: boolean;
   error: string | null;
 }
 
+/** Authentication context value with auth methods */
 export interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
@@ -15,7 +17,12 @@ export interface AuthContextValue extends AuthState {
   loginAsGuest: () => void;
 }
 
+/**
+ * Centralized authentication service
+ * Handles sign in/up, session management, and user profile mapping
+ */
 export class AuthService {
+  /** Sign in with email and password */
   static async signIn(email: string, password: string): Promise<User | null> {
     try {
       await SupabaseService.signIn(email, password);
@@ -26,6 +33,7 @@ export class AuthService {
     }
   }
 
+  /** Sign up with email and password */
   static async signUp(email: string, password: string): Promise<User | null> {
     try {
       await SupabaseService.signUp(email, password);
@@ -36,6 +44,7 @@ export class AuthService {
     }
   }
 
+  /** Initiate Google OAuth sign in */
   static async signInWithGoogle(): Promise<void> {
     try {
       await SupabaseService.signInWithGoogle();
@@ -44,6 +53,7 @@ export class AuthService {
     }
   }
 
+  /** Sign out current user */
   static async signOut(): Promise<void> {
     try {
       await SupabaseService.signOut();
@@ -52,6 +62,7 @@ export class AuthService {
     }
   }
 
+  /** Get current authenticated user */
   static async getCurrentUser(): Promise<User | null> {
     try {
       return await SupabaseService.getCurrentUser();
@@ -60,6 +71,7 @@ export class AuthService {
     }
   }
 
+  /** Subscribe to auth state changes */
   static onAuthStateChange(callback: (event: string, user: User | null) => void): () => void {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
@@ -73,6 +85,7 @@ export class AuthService {
     return () => subscription.unsubscribe();
   }
 
+  /** Check for existing session on app load with timeout protection */
   static async checkInitialSession(timeoutMs: number = 5000): Promise<User | null> {
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {

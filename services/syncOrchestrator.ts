@@ -1,15 +1,25 @@
 import { User, PromptEntry, Preset } from '../types';
 import { StorageService } from './storageService';
 
+/** State of sync operations */
 export interface SyncState {
   isSyncing: boolean;
   lastSynced: number;
   error: string | null;
 }
 
+/**
+ * Orchestrates data synchronization between local and cloud storage
+ * Handles sync on login, manual sync triggers, and error reporting
+ */
 export class SyncOrchestrator {
   private static isSyncing = false;
 
+  /**
+   * Synchronize user data on login
+   * For authenticated users: performs full bi-directional sync
+   * For guests: loads local data only
+   */
   static async syncOnLogin(
     user: User,
     onUpdate: (entries: PromptEntry[], presets: Preset[]) => void,
@@ -57,6 +67,10 @@ export class SyncOrchestrator {
     }
   }
 
+  /**
+   * Perform manual cloud synchronization
+   * Only for authenticated users (not guests)
+   */
   static async performCloudSync(
     userId: string,
     onUpdate: (entries: PromptEntry[]) => void,
