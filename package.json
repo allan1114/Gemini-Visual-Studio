@@ -1,0 +1,40 @@
+{
+  "name": "gemini-visual-studio",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "lint": "tsc --noEmit",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "@google/genai": "^1.34.0",
+    "@supabase/supabase-js": "^2.97.0",
+    "@tailwindcss/vite": "^4.2.0",
+    "@types/d3": "^7.4.3",
+    "clsx": "^2.1.1",
+    "d3": "^7.9.0",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.574.0",
+    "motion": "^12.34.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-virtualized-auto-sizer": "^2.0.3",
+    "react-window": "^2.2.7",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/react-virtualized-auto-sizer": "^1.0.4",
+    "@types/react-window": "^1.8.8",
+    "@vitejs/plugin-react": "^4.3.0",
+    "gh-pages": "^6.1.1",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  }
+}
