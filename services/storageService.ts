@@ -1,6 +1,7 @@
 
 import { PromptEntry, Preset } from '../types';
 import { SupabaseService, supabase } from './supabaseService';
+import { ErrorHandler } from '../utils/errorHandler';
 
 const DB_NAME = 'GeminiStudioDB';
 const STORE_NAME = 'studio_entries';
@@ -44,7 +45,7 @@ export class StorageService {
     };
   }
 
-  private static mapFromDb(dbEntry: any): PromptEntry {
+  private static mapFromDb(dbEntry: Record<string, unknown>): PromptEntry {
     return {
       id: dbEntry.id,
       userId: dbEntry.user_id,

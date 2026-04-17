@@ -1,6 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { User } from '../types';
+import { ErrorHandler } from '../utils/errorHandler';
 
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string) || '';
 const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
@@ -19,11 +20,12 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 export class SupabaseService {
-  static async mapUser(sbUser: any): Promise<User | null> {
-    if (!sbUser) return null;
+  static async mapUser(sbUser: unknown): Promise<User | null> {
+    if (!sbUser || typeof sbUser !== 'object') return null;
 
-    let isAdmin = sbUser.user_metadata?.is_admin || false;
-    let username = sbUser.user_metadata?.username || sbUser.email?.split('@')[0] || 'User';
+    const user = sbUser as Record<string, any>;
+    let isAdmin = (user.user_metadata as any)?.is_admin || false;
+    let username = (user.user_metadata as any)?.username || (user.email as string)?.split('@')[0] || 'User';
 
     try {
       // Create a promise that rejects after 2 seconds
@@ -35,17 +37,18 @@ export class SupabaseService {
       const profilePromise = supabase
         .from('profiles')
         .select('is_admin, username')
-        .eq('id', sbUser.id)
+        .eq('id', user.id)
         .single();
 
-      const result: any = await Promise.race([profilePromise, timeoutPromise]);
-      
+      const result = await Promise.race([profilePromise, timeoutPromise]);
+
       if (result && !result.error && result.data) {
         isAdmin = result.data.is_admin;
         username = result.data.username || username;
       }
-    } catch (e: any) {
-      if (e.message === 'TIMEOUT') {
+    } catch (e: unknown) {
+      const error = e as Record<string, any>;
+      if (error?.message === 'TIMEOUT') {
         console.warn("[Auth] Profile fetch timed out, using fallback metadata.");
       } else {
         console.warn("[Auth] Could not fetch profile, using metadata as fallback.");
@@ -53,7 +56,7 @@ export class SupabaseService {
     }
 
     return {
-      id: sbUser.id,
+      id: user.id as string,
       username: username,
       isAdmin: isAdmin
     };
