@@ -17,6 +17,8 @@ import AvatarView from './components/AvatarView';
 import KeyWallet from './components/KeyWallet';
 import { GalleryGrid, PresetsList, MembersDB } from './components/StudioViews';
 
+const getErrMsg = (err: unknown): string => err instanceof Error ? err.message : String(err);
+
 const TRANSLATIONS = {
   en: {
     gallery: "Explore Gallery", create: "Create", edit: "AI Edit", avatar: "AI Avatar", studio: "My Studio", prompts: "My Prompts", presets: "My Presets",
@@ -233,7 +235,7 @@ const App: React.FC = () => {
         }
       } catch (err: unknown) {
         console.error("[Auth] Initial session check failed:", err);
-        if (err.message?.includes('Failed to fetch')) {
+        if (getErrMsg(err).includes('Failed to fetch')) {
           setAuthError(language === 'zh' ? '無法連線至 Supabase，請檢查 VITE_SUPABASE_URL 是否正確。' : 'Cannot connect to Supabase. Please check VITE_SUPABASE_URL.');
         }
         setIsInitialLoading(false);
@@ -279,10 +281,10 @@ const App: React.FC = () => {
         await AuthService.signIn(authForm.email, authForm.password);
       }
     } catch (err: unknown) {
-      if (err.message && err.message.includes('Failed to fetch')) {
+      if (getErrMsg(err).includes('Failed to fetch')) {
         setAuthError(language === 'zh' ? '網路連接失敗，請檢查您的網路設定。' : 'Network connection failed. Please check your internet connection.');
       } else {
-        setAuthError(err.message || "Authentication failed.");
+        setAuthError(getErrMsg(err) || "Authentication failed.");
       }
     } finally {
       setIsAuthLoading(false);
@@ -300,10 +302,10 @@ const App: React.FC = () => {
     try {
       await AuthService.signInWithGoogle();
     } catch (err: unknown) {
-      if (err.message && err.message.includes('Failed to fetch')) {
+      if (getErrMsg(err).includes('Failed to fetch')) {
         setAuthError(language === 'zh' ? '網路連接失敗，請檢查您的網路設定。' : 'Network connection failed. Please check your internet connection.');
       } else {
-        setAuthError(err.message);
+        setAuthError(getErrMsg(err));
       }
     }
   };
@@ -319,7 +321,7 @@ const App: React.FC = () => {
       await AuthService.signOut();
     } catch (err: unknown) {
       console.error("Sign out error:", err);
-      if (err.message && err.message.includes('Failed to fetch')) {
+      if (getErrMsg(err).includes('Failed to fetch')) {
         setNetworkError(t.fetchError);
       }
     } finally {
@@ -374,7 +376,7 @@ const App: React.FC = () => {
             zip.file(`${e.id.substring(0,8)}.png`, await r.blob()); 
           } catch (err: unknown) {
             console.error(`Failed to fetch image ${e.id}:`, err);
-            if (err.message && err.message.includes('Failed to fetch')) {
+            if (getErrMsg(err).includes('Failed to fetch')) {
               setNetworkError(t.fetchError);
             }
             // Continue with other images
@@ -389,10 +391,10 @@ const App: React.FC = () => {
       l.click();
     } catch (err: unknown) {
       console.error("ZIP creation failed:", err);
-      if (err.message && err.message.includes('Failed to fetch')) {
+      if (getErrMsg(err).includes('Failed to fetch')) {
         setNetworkError(t.fetchError);
       } else {
-        alert("ZIP creation failed: " + (err.message || "Unknown error"));
+        alert("ZIP creation failed: " + (getErrMsg(err) || "Unknown error"));
       }
     } finally { 
       setIsZipping(false); 
@@ -439,10 +441,10 @@ const App: React.FC = () => {
       alert(t.importSuccess);
     } catch (err: unknown) { 
       console.error("Import failed:", err);
-      if (err.message && err.message.includes('Failed to fetch')) {
+      if (getErrMsg(err).includes('Failed to fetch')) {
         setNetworkError(t.fetchError);
       } else {
-        alert(`${t.importError}: ${err.message}`); 
+        alert(`${t.importError}: ${getErrMsg(err)}`); 
       }
     } finally {
       setIsImporting(false);

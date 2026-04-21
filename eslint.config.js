@@ -47,7 +47,22 @@ export default [
         Image: 'readonly',
         navigator: 'readonly',
         alert: 'readonly',
-        confirm: 'readonly'
+        confirm: 'readonly',
+        indexedDB: 'readonly',
+        IDBDatabase: 'readonly',
+        IDBOpenDBRequest: 'readonly',
+        IDBTransaction: 'readonly',
+        IDBObjectStore: 'readonly',
+        IDBRequest: 'readonly',
+        JSZip: 'readonly',
+        Promise: 'readonly',
+        Map: 'readonly',
+        Set: 'readonly',
+        Math: 'readonly',
+        JSON: 'readonly',
+        Date: 'readonly',
+        Array: 'readonly',
+        Uint8Array: 'readonly'
       }
     },
     plugins: {

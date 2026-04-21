@@ -40,7 +40,7 @@ export class SupabaseService {
         .eq('id', user.id)
         .single();
 
-      const result = await Promise.race([profilePromise, timeoutPromise]);
+      const result = await Promise.race([profilePromise, timeoutPromise]) as { error?: unknown; data?: { is_admin: boolean; username?: string } } | null;
 
       if (result && !result.error && result.data) {
         isAdmin = result.data.is_admin;

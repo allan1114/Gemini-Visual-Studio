@@ -1,5 +1,5 @@
 
-import { PromptEntry, Preset } from '../types';
+import { PromptEntry, Preset, ModelChoice, GenerationConfig } from '../types';
 import { SupabaseService, supabase } from './supabaseService';
 import { ErrorHandler } from '../utils/errorHandler';
 
@@ -48,17 +48,17 @@ export class StorageService {
 
   private static mapFromDb(dbEntry: Record<string, unknown>): PromptEntry {
     return {
-      id: dbEntry.id,
-      userId: dbEntry.user_id,
-      author: dbEntry.author,
-      text: dbEntry.text,
-      negativePrompt: dbEntry.negative_prompt,
-      tags: dbEntry.tags,
-      imageUrl: dbEntry.image_url,
-      model: dbEntry.model,
-      type: dbEntry.type,
-      config: dbEntry.config,
-      timestamp: dbEntry.timestamp
+      id: dbEntry.id as string,
+      userId: dbEntry.user_id as string,
+      author: dbEntry.author as string,
+      text: dbEntry.text as string,
+      negativePrompt: dbEntry.negative_prompt as string | undefined,
+      tags: dbEntry.tags as string[] | undefined,
+      imageUrl: dbEntry.image_url as string | undefined,
+      model: dbEntry.model as ModelChoice,
+      type: dbEntry.type as 'generation' | 'edit' | 'avatar',
+      config: dbEntry.config as GenerationConfig | undefined,
+      timestamp: dbEntry.timestamp as number
     };
   }
 
