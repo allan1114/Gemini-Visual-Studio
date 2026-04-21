@@ -3,12 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 import { User } from '../types';
 import { ErrorHandler } from '../utils/errorHandler';
 
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string) || '';
-const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
+const storedConfig = (() => {
+  try { return JSON.parse(localStorage.getItem('gvs_supabase_config') || '{}'); } catch { return {}; }
+})();
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('[Supabase] Missing environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set in .env.local');
-}
+const SUPABASE_URL = storedConfig.url || (import.meta.env.VITE_SUPABASE_URL as string) || '';
+const SUPABASE_ANON_KEY = storedConfig.anonKey || (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {

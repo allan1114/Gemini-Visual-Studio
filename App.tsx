@@ -10,6 +10,8 @@ import { SupabaseService, supabase } from './services/supabaseService';
 import { AuthService } from './services/authService';
 import { SyncOrchestrator } from './services/syncOrchestrator';
 
+import ApiKeySetup from './components/ApiKeySetup';
+
 // Views
 import GenerateView from './components/GenerateView';
 import EditView from './components/EditView';
@@ -104,7 +106,15 @@ const TRANSLATIONS = {
   }
 };
 
+const hasGeminiKey = (): boolean => {
+  try {
+    const keys = JSON.parse(localStorage.getItem(STORAGE_KEYS.API_KEYS) || '[]');
+    return keys.some((k: { isActive: boolean; key: string }) => k.isActive && k.key);
+  } catch { return false; }
+};
+
 const App: React.FC = () => {
+  const [showSettings, setShowSettings] = useState(!hasGeminiKey());
   const [view, setView] = useState<View>(View.GALLERY);
   const [language, setLanguage] = useState<Language>('zh'); 
   const [allEntries, setAllEntries] = useState<PromptEntry[]>([]);
@@ -461,6 +471,10 @@ const App: React.FC = () => {
     return res;
   }, [allEntries, view, user, searchTerm]);
 
+  if (showSettings) {
+    return <ApiKeySetup language={language} onComplete={() => setShowSettings(false)} />;
+  }
+
   if (isInitialLoading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#050505]">
@@ -555,6 +569,7 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center gap-4">
             <button onClick={() => setShowHelp(true)} className="px-4 py-2 bg-indigo-500/10 text-indigo-400 rounded-full text-xs font-bold"><i className="fa-solid fa-circle-question mr-2"></i>{t.help}</button>
+            <button onClick={() => setShowSettings(true)} title={language === 'zh' ? 'API Keys 設定' : 'API Key Settings'} className="px-3 py-2 bg-white/5 rounded-full text-xs font-bold hover:bg-white/10 transition-colors"><i className="fa-solid fa-gear"></i></button>
             <button onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')} className="px-4 py-2 bg-white/5 rounded-full text-xs font-bold">{(language === 'en' ? 'EN' : '中文')}</button>
             <div className="flex items-center gap-3 px-3 py-2 rounded-full glass border-indigo-500/20">
               <span className="text-sm font-medium">{user.username}</span>
