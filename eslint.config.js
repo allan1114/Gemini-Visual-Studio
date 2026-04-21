@@ -62,7 +62,8 @@ export default [
         JSON: 'readonly',
         Date: 'readonly',
         Array: 'readonly',
-        Uint8Array: 'readonly'
+        Uint8Array: 'readonly',
+        process: 'readonly'
       }
     },
     plugins: {
