@@ -9,5 +9,19 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-ai': ['@google/genai'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-d3': ['d3'],
+          'vendor-zip': ['jszip'],
+          'vendor-ui': ['lucide-react', 'motion', 'clsx', 'tailwind-merge'],
+          'vendor-virtual': ['react-window', 'react-virtualized-auto-sizer'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
   },
 });
