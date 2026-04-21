@@ -1,6 +1,7 @@
 
 import { PromptEntry, Preset } from '../types';
 import { SupabaseService, supabase } from './supabaseService';
+import { ErrorHandler } from '../utils/errorHandler';
 
 const DB_NAME = 'GeminiStudioDB';
 const STORE_NAME = 'studio_entries';
@@ -9,6 +10,7 @@ const DB_VERSION = 1;
 export class StorageService {
   private static db: IDBDatabase | null = null;
   private static isSyncing = false;
+  private static syncPromise: Promise<PromptEntry[]> | null = null;
 
   private static async getDB(): Promise<IDBDatabase> {
     if (this.db) return this.db;
@@ -44,7 +46,7 @@ export class StorageService {
     };
   }
 
-  private static mapFromDb(dbEntry: any): PromptEntry {
+  private static mapFromDb(dbEntry: Record<string, unknown>): PromptEntry {
     return {
       id: dbEntry.id,
       userId: dbEntry.user_id,
@@ -62,9 +64,28 @@ export class StorageService {
 
   /**
    * Performs full bi-directional sync between local DB and Cloud.
+   * Uses promise-based locking to prevent concurrent sync operations.
    */
   static async performFullSync(userId: string): Promise<PromptEntry[]> {
-    if (!userId || userId === 'anon' || this.isSyncing) return await this.getAllEntries();
+    if (!userId || userId === 'anon') return await this.getAllEntries();
+
+    // Return existing sync promise if one is already in progress
+    if (this.syncPromise) {
+      return this.syncPromise;
+    }
+
+    // Create new sync promise
+    this.syncPromise = this.performSyncInternal(userId);
+
+    try {
+      return await this.syncPromise;
+    } finally {
+      this.syncPromise = null;
+      this.isSyncing = false;
+    }
+  }
+
+  private static async performSyncInternal(userId: string): Promise<PromptEntry[]> {
     this.isSyncing = true;
     
     try {
@@ -142,8 +163,6 @@ export class StorageService {
         console.error('Sync failed:', err);
       }
       return await this.getAllEntries();
-    } finally {
-      this.isSyncing = false;
     }
   }
 

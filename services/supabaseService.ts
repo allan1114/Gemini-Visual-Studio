@@ -1,9 +1,14 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { User } from '../types';
+import { ErrorHandler } from '../utils/errorHandler';
 
-const SUPABASE_URL = (process.env as any).SUPABASE_URL || 'https://aeslmmljwjhfjdliluzh.supabase.co';
-const SUPABASE_ANON_KEY = (process.env as any).SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc2xtbWxqd2poZmpkbGlsdXpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5Nzc0NTQsImV4cCI6MjA4NTU1MzQ1NH0.m5Jjq9n53d2LVgHfTYUdjYLCZqbg-b7eOgpBLA56a0o';
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string) || '';
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('[Supabase] Missing environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set in .env.local');
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -15,11 +20,12 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 export class SupabaseService {
-  static async mapUser(sbUser: any): Promise<User | null> {
-    if (!sbUser) return null;
+  static async mapUser(sbUser: unknown): Promise<User | null> {
+    if (!sbUser || typeof sbUser !== 'object') return null;
 
-    let isAdmin = sbUser.user_metadata?.is_admin || false;
-    let username = sbUser.user_metadata?.username || sbUser.email?.split('@')[0] || 'User';
+    const user = sbUser as Record<string, any>;
+    let isAdmin = (user.user_metadata as any)?.is_admin || false;
+    let username = (user.user_metadata as any)?.username || (user.email as string)?.split('@')[0] || 'User';
 
     try {
       // Create a promise that rejects after 2 seconds
@@ -31,17 +37,18 @@ export class SupabaseService {
       const profilePromise = supabase
         .from('profiles')
         .select('is_admin, username')
-        .eq('id', sbUser.id)
+        .eq('id', user.id)
         .single();
 
-      const result: any = await Promise.race([profilePromise, timeoutPromise]);
-      
+      const result = await Promise.race([profilePromise, timeoutPromise]);
+
       if (result && !result.error && result.data) {
         isAdmin = result.data.is_admin;
         username = result.data.username || username;
       }
-    } catch (e: any) {
-      if (e.message === 'TIMEOUT') {
+    } catch (e: unknown) {
+      const error = e as Record<string, any>;
+      if (error?.message === 'TIMEOUT') {
         console.warn("[Auth] Profile fetch timed out, using fallback metadata.");
       } else {
         console.warn("[Auth] Could not fetch profile, using metadata as fallback.");
@@ -49,7 +56,7 @@ export class SupabaseService {
     }
 
     return {
-      id: sbUser.id,
+      id: user.id as string,
       username: username,
       isAdmin: isAdmin
     };

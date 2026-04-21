@@ -2,6 +2,7 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 import { MODELS, STORAGE_KEYS } from "../constants";
 import { AspectRatio, ImageSize, ModelChoice, ApiKeyRecord } from "../types";
+import { ErrorHandler } from "../utils/errorHandler";
 
 const IMAGE_GEN_INSTRUCTION = `You are a high-end visual synthesizer. 
 Focus on cinematic lighting, professional textures, and photorealistic rendering.
@@ -45,16 +46,13 @@ export class GeminiService {
       if (activeKey) return new GoogleGenAI({ apiKey: activeKey.key });
     }
 
-    const studioKey = (process.env as any).API_KEY;
-    const defaultKey = (process.env as any).GEMINI_API_KEY;
-    
-    const apiKey = (studioKey && studioKey.trim()) || (defaultKey && defaultKey.trim());
-    
+    const apiKey = (import.meta.env.VITE_GEMINI_API_KEY as string || '').trim();
+
     if (!apiKey) {
-      console.warn("[Gemini] API key is missing or empty string");
+      console.warn("[Gemini] API key is missing. Set VITE_GEMINI_API_KEY in .env.local");
       throw new Error("API_KEY_MISSING");
     }
-    
+
     return new GoogleGenAI({ apiKey });
   }
 
@@ -80,27 +78,8 @@ export class GeminiService {
     return p;
   }
 
-  private static async withRetry<T>(fn: () => Promise<T>, retries = 5, delay = 2000): Promise<T> {
-    try {
-      return await fn();
-    } catch (error: any) {
-      if (error.message && error.message.includes('Failed to fetch')) {
-        throw new Error("NETWORK_ERROR");
-      }
-
-      const isRetryable = 
-        error.message?.includes("429") || 
-        error.message?.includes("503") || 
-        error.status === 429 || 
-        error.status === 503;
-      
-      if (retries > 0 && isRetryable) {
-        const jitter = Math.random() * 1500;
-        await new Promise(resolve => setTimeout(resolve, delay + jitter));
-        return this.withRetry(fn, retries - 1, delay * 2);
-      }
-      throw error;
-    }
+  private static async withRetry<T>(fn: () => Promise<T>): Promise<T> {
+    return ErrorHandler.withRetry(fn, 3, 2000);
   }
 
   static async testKey(key: string): Promise<boolean> {

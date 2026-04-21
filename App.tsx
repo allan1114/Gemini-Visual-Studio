@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import JSZip from 'jszip';
-import { View, PromptEntry, ModelChoice, User, Language, Preset, UsageStats } from './types';
+import { View, PromptEntry, ModelChoice, User, Language, Preset, UsageStats, Member, GenerationConfig, AppError } from './types';
 import { STORAGE_KEYS } from './constants';
 import Sidebar from './components/Sidebar';
 import { DBService } from './services/dbService';
 import { StorageService } from './services/storageService';
 import { ImageProcessingService } from './services/imageProcessingService';
 import { SupabaseService, supabase } from './services/supabaseService';
+import { AuthService } from './services/authService';
+import { SyncOrchestrator } from './services/syncOrchestrator';
 
 // Views
 import GenerateView from './components/GenerateView';
@@ -117,7 +119,7 @@ const App: React.FC = () => {
   const [usageStats, setUsageStats] = useState<UsageStats>({ sessionCount: 0, lastInputTokens: 0, lastOutputTokens: 0, totalTokens: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [isDbLoading, setIsDbLoading] = useState(false);
   const [remixData, setRemixData] = useState<PromptEntry | null>(null);
   
@@ -142,48 +144,38 @@ const App: React.FC = () => {
       setAllEntries(entries || []);
       setPresets(loadedPresets || []);
       setNetworkError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Refresh data failed:", err);
-      if (err.message && err.message.includes('Failed to fetch')) {
+      const error = err as AppError;
+      if (error.message && error.message.includes('Failed to fetch')) {
         setNetworkError(t.fetchError);
       }
     }
   };
 
   const syncOnLogin = async (loggedUser: User) => {
-    if (!loggedUser || loggedUser.id === 'anon') {
-      await refreshData(loggedUser);
-      return;
-    }
-    
-    if (isSyncing) return;
-    
     setIsSyncing(true);
     setNetworkError(null);
-    try {
-      console.log("[Sync] Starting sync for user:", loggedUser.id);
-      const mergedEntries = await StorageService.performFullSync(loggedUser.id);
-      setAllEntries(mergedEntries);
-      const loadedPresets = await StorageService.getPresets(loggedUser.id);
-      setPresets(loadedPresets || []);
-      setLastSynced(Date.now());
-    } catch (err: any) {
-      console.error("[Sync] Sync on login failed:", err);
-      if (err.message === 'SYNC_TIMEOUT') {
-        setNetworkError(language === 'zh' ? '同步超時，部分項目可能尚未同步。' : 'Sync timed out. Some items may not be synced.');
-      } else if (err.message && err.message.includes('Failed to fetch')) {
-        setNetworkError(t.fetchError);
+    await SyncOrchestrator.syncOnLogin(
+      loggedUser,
+      (entries, presets) => {
+        setAllEntries(entries);
+        setPresets(presets);
+        setLastSynced(Date.now());
+        setIsSyncing(false);
+      },
+      (error) => {
+        setNetworkError(error);
+        setIsSyncing(false);
       }
-    } finally {
-      setIsSyncing(false);
-    }
+    );
   };
 
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
-    const handleAuthStateChange = async (event: string, session: any) => {
+    const handleAuthStateChange = async (event: string, session: { user?: { id: string } } | null) => {
       console.log(`[Auth] Event: ${event}, User: ${session?.user?.id || 'none'}`);
       
       try {
@@ -239,7 +231,7 @@ const App: React.FC = () => {
           console.log("[Auth] No initial session");
           setIsInitialLoading(false);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("[Auth] Initial session check failed:", err);
         if (err.message?.includes('Failed to fetch')) {
           setAuthError(language === 'zh' ? '無法連線至 Supabase，請檢查 VITE_SUPABASE_URL 是否正確。' : 'Cannot connect to Supabase. Please check VITE_SUPABASE_URL.');
@@ -263,20 +255,16 @@ const App: React.FC = () => {
 
   const handleCloudSync = async () => {
     if (!user || user.id === 'anon') return;
-    setIsSyncing(true);
-    setNetworkError(null);
-    try {
-      const merged = await StorageService.performFullSync(user.id);
-      setAllEntries(merged);
-      setLastSynced(Date.now());
-    } catch (err: any) {
-      console.error("Cloud sync failed:", err);
-      if (err.message && err.message.includes('Failed to fetch')) {
-        setNetworkError(t.fetchError);
+    await SyncOrchestrator.performCloudSync(
+      user.id,
+      (entries) => {
+        setAllEntries(entries);
+        setLastSynced(Date.now());
+      },
+      (error) => {
+        setNetworkError(error);
       }
-    } finally {
-      setIsSyncing(false);
-    }
+    );
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -285,13 +273,12 @@ const App: React.FC = () => {
     setAuthError(null);
     try {
       if (authMode === 'signup') {
-        await SupabaseService.signUp(authForm.email, authForm.password);
+        await AuthService.signUp(authForm.email, authForm.password);
         alert(language === 'zh' ? '註冊成功，請檢查您的電子郵件進行驗證。' : 'Sign up successful! Please check your email for verification.');
       } else {
-        await SupabaseService.signIn(authForm.email, authForm.password);
-        // We don't manually set user/view here; onAuthStateChange will handle it
+        await AuthService.signIn(authForm.email, authForm.password);
       }
-    } catch (err: any) { 
+    } catch (err: unknown) {
       if (err.message && err.message.includes('Failed to fetch')) {
         setAuthError(language === 'zh' ? '網路連接失敗，請檢查您的網路設定。' : 'Network connection failed. Please check your internet connection.');
       } else {
@@ -311,8 +298,8 @@ const App: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      await SupabaseService.signInWithGoogle();
-    } catch (err: any) {
+      await AuthService.signInWithGoogle();
+    } catch (err: unknown) {
       if (err.message && err.message.includes('Failed to fetch')) {
         setAuthError(language === 'zh' ? '網路連接失敗，請檢查您的網路設定。' : 'Network connection failed. Please check your internet connection.');
       } else {
@@ -329,8 +316,8 @@ const App: React.FC = () => {
       return;
     }
     try {
-      await SupabaseService.signOut();
-    } catch (err: any) {
+      await AuthService.signOut();
+    } catch (err: unknown) {
       console.error("Sign out error:", err);
       if (err.message && err.message.includes('Failed to fetch')) {
         setNetworkError(t.fetchError);
@@ -342,7 +329,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSaveEntry = async (url: string, text: string, tags: string[], model: ModelChoice, config: any, aiTags: string[] = []) => {
+  const handleSaveEntry = async (url: string, text: string, tags: string[], model: ModelChoice, config: GenerationConfig, aiTags: string[] = []) => {
     const combinedTags = Array.from(new Set([...tags, ...aiTags]));
     const entryId = crypto.randomUUID();
     const currentUserId = user?.id || 'anon';
@@ -385,7 +372,7 @@ const App: React.FC = () => {
             const r = await fetch(e.imageUrl);
             if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
             zip.file(`${e.id.substring(0,8)}.png`, await r.blob()); 
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error(`Failed to fetch image ${e.id}:`, err);
             if (err.message && err.message.includes('Failed to fetch')) {
               setNetworkError(t.fetchError);
@@ -400,7 +387,7 @@ const App: React.FC = () => {
       l.href = url; 
       l.download = `studio-pack-${Date.now()}.zip`; 
       l.click();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("ZIP creation failed:", err);
       if (err.message && err.message.includes('Failed to fetch')) {
         setNetworkError(t.fetchError);
@@ -442,7 +429,7 @@ const App: React.FC = () => {
       const data = JSON.parse(text);
       const currentUserId = user?.id || 'anon';
       if (data.entries && Array.isArray(data.entries)) {
-        const chunk = data.entries.map((entry: any) => ({
+        const chunk = (data.entries as PromptEntry[]).map((entry: PromptEntry) => ({
           ...entry,
           userId: currentUserId,
         }));
@@ -450,7 +437,7 @@ const App: React.FC = () => {
         await refreshData();
       }
       alert(t.importSuccess);
-    } catch (err: any) { 
+    } catch (err: unknown) { 
       console.error("Import failed:", err);
       if (err.message && err.message.includes('Failed to fetch')) {
         setNetworkError(t.fetchError);

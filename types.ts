@@ -26,6 +26,13 @@ export interface UsageStats {
   totalTokens: number;
 }
 
+export interface GenerationConfig {
+  size?: ImageSize;
+  aspectRatio?: AspectRatio;
+  seed?: number;
+  temperature?: number;
+}
+
 export interface PromptEntry {
   id: string;
   userId: string;
@@ -37,12 +44,7 @@ export interface PromptEntry {
   imageUrl?: string;
   type: 'generation' | 'edit' | 'avatar';
   model: ModelChoice;
-  config?: {
-    size?: ImageSize;
-    aspectRatio?: AspectRatio;
-    seed?: number;
-    temperature?: number;
-  };
+  config?: GenerationConfig;
 }
 
 export interface Preset {
@@ -69,6 +71,27 @@ export enum View {
   PRESETS = 'presets',
   DATABASE = 'database',
   KEY_WALLET = 'key_wallet'
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  avatar?: string;
+  bio?: string;
+  createdAt: number;
+}
+
+export interface AppError extends Error {
+  code?: string;
+  isRetryable?: boolean;
+}
+
+export interface ImageGenerationResult {
+  url: string;
+  inputTokens: number;
+  outputTokens: number;
+  aiDescription?: string;
+  aiTags?: string[];
 }
 
 declare global {
