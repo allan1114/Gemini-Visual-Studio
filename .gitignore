@@ -43,3 +43,6 @@ lerna-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Tauri / Rust build output
+src-tauri/target/
