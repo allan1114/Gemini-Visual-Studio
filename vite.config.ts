@@ -1,11 +1,12 @@
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
+const isTauri = process.env.TAURI_ENV_PLATFORM !== undefined;
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/Gemini-Visual-Studio/',
+  base: isTauri ? './' : '/Gemini-Visual-Studio/',
   build: {
     outDir: 'dist',
     sourcemap: true,
