@@ -78,8 +78,8 @@ export class GeminiService {
     return p;
   }
 
-  private static async withRetry<T>(fn: () => Promise<T>): Promise<T> {
-    return ErrorHandler.withRetry(fn, 3, 2000);
+  private static async withRetry<T>(fn: () => Promise<T>, maxRetries: number = 3): Promise<T> {
+    return ErrorHandler.withRetry(fn, maxRetries, 2000);
   }
 
   static async testKey(key: string): Promise<boolean> {

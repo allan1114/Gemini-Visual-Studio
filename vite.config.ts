@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: './',
+  base: '/Gemini-Visual-Studio/',
   build: {
     outDir: 'dist',
     sourcemap: true,

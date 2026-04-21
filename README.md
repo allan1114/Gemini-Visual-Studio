@@ -1,159 +1,170 @@
 # Gemini Visual Studio 🎨
 
-Professional-grade AI image generation and editing suite powered by Google's Gemini API.
+[English](./README.en.md) | 繁體中文
 
-> **最新版本**: 2.0.0 - 完全重构，包含安全增强、架构优化、完整测试和文档
+專業級 AI 影像生成與編輯套件，由 Google Gemini API 驅動。
+
+> **最新版本**: 2.0.0 - 完全重構，包含安全增強、架構優化、完整測試和文檔
 
 ## ✨ 核心功能
 
-- **🖼️ 4K 图像生成** - 使用 Gemini 3 Pro 生成超高分辨率图像
-- **✏️ AI 编辑工具** - 照片增强、风格转换和修复
-- **👤 头像创作** - 一致的角色设计生成
-- **📝 高级提示词编辑器** - 专业级 AI 提示词优化
-- **🎨 个人创意工作室** - 本地和云端智能存储管理
-- **🌍 多语言支持** - 中文/英文完整界面
+- **🖼️ 4K 影像生成** - 使用 Gemini 3 Pro 生成超高分辨率影像
+- **✏️ AI 編輯工具** - 照片增強、風格轉換和修復
+- **👤 頭像創作** - 一致的角色設計生成
+- **📝 高級提示詞編輯器** - 專業級 AI 提示詞優化
+- **🎨 個人創意工作室** - 本地和雲端智能存儲管理
+- **🌍 多語言支援** - 繁體中文/英文完整介面
 
-## 🚀 5 分钟快速开始
+## 🚀 5 分鐘快速開始
 
-### 前置条件
+### 前置條件
 
 ```bash
 - Node.js 16+ 
 - npm 7+
-- Google Gemini API 密钥（免费）
+- Google Gemini API 金鑰（免費）
 ```
 
-### 安装步骤
+### 線上使用（無需安裝）
+
+1. 訪問：https://allan1114.github.io/Gemini-Visual-Studio
+2. 首次進入時，點擊設定按鈕 ⚙️
+3. 輸入 Gemini API 金鑰（[免費取得](https://aistudio.google.com/app/apikey)）
+4. 開始創作！
+
+> **金鑰只保存在你的瀏覽器本地，不會上傳到任何伺服器**
+
+### 本地開發安裝
 
 ```bash
-# 1. 克隆项目
+# 1. 複製專案
 git clone https://github.com/allan1114/Gemini-Visual-Studio.git
 cd Gemini-Visual-Studio
 
-# 2. 安装依赖
+# 2. 安裝依賴
 npm install
 
-# 3. 配置环境变量
+# 3. 設定環境變數（可選，線上版本可跳過）
 cp .env.example .env.local
 
-# 4. 编辑 .env.local 添加你的 API 密钥
+# 4. 編輯 .env.local 添加你的 API 金鑰
 # VITE_GEMINI_API_KEY=your_api_key_here
-# VITE_SUPABASE_URL=your_supabase_url（可选）
-# VITE_SUPABASE_ANON_KEY=your_key（可选）
+# VITE_SUPABASE_URL=your_supabase_url（可選）
+# VITE_SUPABASE_ANON_KEY=your_key（可選）
 
-# 5. 启动开发服务器
+# 5. 啟動開發伺服器
 npm run dev
 
-# 访问 http://localhost:5173
+# 訪問 http://localhost:5173
 ```
 
-> 获取免费 API 密钥：https://aistudio.google.com/app/apikey
+## 📚 完整文檔
 
-## 📚 完整文档
-
-### 开发指南
+### 開發指南
 
 ```bash
-# 代码质量检查
+# 代碼品質檢查
 npm run lint        # ESLint + TypeScript
-npm run lint:fix    # 自动修复问题
+npm run lint:fix    # 自動修復問題
 npm run format      # Prettier 格式化
 
-# 单元测试
-npm test            # 运行 vitest
-npm run test:ui     # 启动测试 UI
-npm run test:coverage  # 覆盖率报告
+# 單元測試
+npm test            # 運行 vitest
+npm run test:ui     # 啟動測試 UI
+npm run test:coverage  # 涵蓋率報告
 
-# 构建和部署
-npm run build       # 生产构建
+# 構建和部署
+npm run build       # 生產構建
 npm run deploy      # 部署到 GitHub Pages
 ```
 
-### 项目结构
+### 專案結構
 
 ```
 src/
-├── components/          # UI 组件（10+ 个）
-├── services/            # 业务逻辑服务
-│   ├── authService.ts        # ✅ 认证管理
-│   ├── geminiService.ts      # 🤖 AI API 集成
-│   ├── storageService.ts     # 💾 本地存储
-│   ├── supabaseService.ts    # ☁️ 云端存储
-│   └── syncOrchestrator.ts   # 🔄 数据同步
-├── hooks/               # 自定义 Hooks
-├── utils/               # 工具函数
-│   ├── errorHandler.ts       # ⚠️ 错误管理
-│   └── i18n.ts              # 🌍 多语言
-├── types.ts            # TypeScript 类型
-└── App.tsx            # 主应用组件
+├── components/          # UI 組件（10+ 個）
+├── services/            # 業務邏輯服務
+│   ├── authService.ts        # ✅ 認證管理
+│   ├── geminiService.ts      # 🤖 AI API 整合
+│   ├── storageService.ts     # 💾 本地存儲
+│   ├── supabaseService.ts    # ☁️ 雲端存儲
+│   └── syncOrchestrator.ts   # 🔄 數據同步
+├── hooks/               # 自訂 Hooks
+├── utils/               # 工具函數
+│   ├── errorHandler.ts       # ⚠️ 錯誤管理
+│   ├── i18n.ts              # 🌍 多語言
+│   └── apiKeyManager.ts      # 🔑 金鑰管理
+├── types.ts            # TypeScript 型別
+└── App.tsx            # 主應用組件
 ```
 
-## 🔐 2.0.0 版本的关键改进
+## 🔐 2.0.0 版本的關鍵改進
 
 ### 1️⃣ 安全性（Phase 1）
-- ✅ 移除所有硬编码的 API 密钥
-- ✅ 使用 VITE_ 前缀的环境变量
-- ✅ 正确的 Supabase 凭证管理
+- ✅ 移除所有硬編碼的 API 金鑰
+- ✅ 使用 VITE_ 前綴的環境變數
+- ✅ 金鑰存儲在瀏覽器本地，永不上傳
+- ✅ 正確的 Supabase 憑證管理
 
-### 2️⃣ 架构（Phase 2）
-- ✅ 拆分 authService - 认证逻辑独立
-- ✅ 拆分 syncOrchestrator - 数据同步独立
-- ✅ 提取 i18n - 翻译模块化
-- ✅ 减少 App.tsx 从 1062 行到 ~500 行
+### 2️⃣ 架構（Phase 2）
+- ✅ 拆分 authService - 認證邏輯獨立
+- ✅ 拆分 syncOrchestrator - 數據同步獨立
+- ✅ 提取 i18n - 翻譯模組化
+- ✅ 減少 App.tsx 從 1062 行到 ~500 行
 
-### 3️⃣ 类型安全（Phase 3）
-- ✅ 替换 12+ `any` 类型
-- ✅ 新增 4 个类型定义
-- ✅ 100% TypeScript 严格模式
+### 3️⃣ 型別安全（Phase 3）
+- ✅ 替換 12+ `any` 型別
+- ✅ 新增 4 個型別定義
+- ✅ 100% TypeScript 嚴格模式
 
-### 4️⃣ 错误处理（Phase 4）
-- ✅ 创建 ErrorHandler 统一管理
-- ✅ 8 种标准错误分类
-- ✅ 自动重试瞬时错误（指数退避）
-- ✅ 多语言用户友好提示
+### 4️⃣ 錯誤處理（Phase 4）
+- ✅ 創建 ErrorHandler 統一管理
+- ✅ 8 種標準錯誤分類
+- ✅ 自動重試暫時性錯誤（指數退避）
+- ✅ 多語言使用者友善提示
 
-### 5️⃣ 开发工具（Phase 5）
-- ✅ ESLint 代码检查
-- ✅ Prettier 自动格式化
-- ✅ Husky pre-commit 钩子
-- ✅ lint-staged 按需检查
+### 5️⃣ 開發工具（Phase 5）
+- ✅ ESLint 代碼檢查
+- ✅ Prettier 自動格式化
+- ✅ Husky pre-commit 鉤子
+- ✅ lint-staged 按需檢查
 
-### 6️⃣ 单元测试（Phase 6）
-- ✅ Vitest 测试框架
-- ✅ 39+ 单元测试用例
-- ✅ 覆盖核心服务
+### 6️⃣ 單元測試（Phase 6）
+- ✅ Vitest 測試框架
+- ✅ 39+ 單元測試用例
+- ✅ 涵蓋核心服務
 
-### 7️⃣ 性能优化（Phase 7）
-- ✅ 修复 StorageService 并发竞态条件
-- ✅ Promise-based 同步锁
-- ✅ 防止重复同步
+### 7️⃣ 效能優化（Phase 7）
+- ✅ 修復 StorageService 並發競態條件
+- ✅ Promise-based 同步鎖
+- ✅ 防止重複同步
 
-### 8️⃣ 文档（Phase 8）
-- ✅ JSDoc 注释所有关键服务
-- ✅ 完整的 README 教学
-- ✅ 类型定义文档
+### 8️⃣ 文檔（Phase 8）
+- ✅ JSDoc 註解所有關鍵服務
+- ✅ 完整的 README 教學
+- ✅ 型別定義文檔
 
 ## 💡 使用示例
 
-### 认证
+### 認證
 
 ```typescript
 import { AuthService } from './services/authService';
 
-// 登录
+// 登入
 const user = await AuthService.signIn('user@example.com', 'password');
 
-// 注册
+// 註冊
 await AuthService.signUp('new@example.com', 'password');
 
-// 获取当前用户
+// 取得目前使用者
 const currentUser = await AuthService.getCurrentUser();
 
-// 退出登录
+// 登出
 await AuthService.signOut();
 ```
 
-### 错误处理
+### 錯誤處理
 
 ```typescript
 import { ErrorHandler } from './utils/errorHandler';
@@ -163,7 +174,7 @@ try {
 } catch (error) {
   const errorInfo = ErrorHandler.classify(error);
   
-  // 自动重试（最多 3 次）
+  // 自動重試（最多 3 次）
   const result = await ErrorHandler.withRetry(
     () => someAsyncOperation(),
     3,
@@ -172,23 +183,23 @@ try {
 }
 ```
 
-### 数据同步
+### 數據同步
 
 ```typescript
 import { SyncOrchestrator } from './services/syncOrchestrator';
 
-// 登录时同步
+// 登入時同步
 await SyncOrchestrator.syncOnLogin(
   user,
   (entries, presets) => {
     // 更新 UI
   },
   (error) => {
-    // 处理错误
+    // 處理錯誤
   }
 );
 
-// 手动同步
+// 手動同步
 await SyncOrchestrator.performCloudSync(
   userId,
   (entries) => { /* ... */ },
@@ -196,118 +207,122 @@ await SyncOrchestrator.performCloudSync(
 );
 ```
 
-## 🧪 测试
+## 🧪 測試
 
 ```bash
-# 运行所有测试
+# 運行所有測試
 npm test
 
-# 监视模式
+# 監視模式
 npm test -- --watch
 
-# 覆盖率报告
+# 涵蓋率報告
 npm run test:coverage
 
-# 测试 UI
+# 測試 UI
 npm run test:ui
 ```
 
-### 测试覆盖
+### 測試涵蓋
 
-- ✅ ErrorHandler - 18 个测试
-- ✅ AuthService - 11 个测试  
-- ✅ SyncOrchestrator - 10 个测试
+- ✅ ErrorHandler - 18 個測試
+- ✅ AuthService - 11 個測試  
+- ✅ SyncOrchestrator - 10 個測試
 
-## 📋 环境变量
+## 📋 環境變數
 
-创建 `.env.local` 文件：
+創建 `.env.local` 檔案（本地開發用）：
 
 ```env
-# 必需：Google Gemini API 密钥
+# 必填：Google Gemini API 金鑰
 VITE_GEMINI_API_KEY=your_gemini_api_key
 
-# 可选：Supabase（用于云同步）
+# 可選：Supabase（用於雲端同步）
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
+**注意**：線上版本無需設定環境變數，直接在介面設定 API 金鑰即可。
+
 ## 🚀 部署
 
-### GitHub Pages
+### GitHub Pages（推薦）
 
 ```bash
-# 构建项目
+# 構建專案
 npm run build
 
 # 部署到 GitHub Pages
 npm run deploy
 ```
 
-### 自定义服务器
+網站會發佈到：`https://你的使用者名.github.io/Gemini-Visual-Studio`
+
+### 自訂伺服器
 
 ```bash
-# 生产构建
+# 生產構建
 npm run build
 
-# dist/ 文件夹包含所有静态文件
-# 可部署到任何静态主机（Netlify, Vercel, 等）
+# dist/ 資料夾包含所有靜態檔案
+# 可部署到任何靜態主機（Netlify, Vercel, etc）
 ```
 
-## 🏗️ 架构概览
+## 🏗️ 架構概覽
 
 ```
-用户界面 (React Components)
+使用者介面 (React Components)
     ↓
-应用状态 (App.tsx)
+應用狀態 (App.tsx)
     ↓
-业务逻辑服务层
+業務邏輯服務層
 ├─ AuthService ────→ Supabase Auth
 ├─ GeminiService ──→ Google Gemini API
-├─ SyncOrchestrator → 数据同步协调
+├─ SyncOrchestrator → 數據同步協調
 ├─ StorageService ─→ IndexedDB (本地)
-└─ SupabaseService → Supabase DB (云端)
+└─ SupabaseService → Supabase DB (雲端)
     ↓
-错误处理和重试 (ErrorHandler)
+錯誤處理和重試 (ErrorHandler)
     ↓
-用户界面更新
+使用者介面更新
 ```
 
-## 🎯 最佳实践
+## 🎯 最佳實踐
 
-### 1. 类型安全
-- 总是提供显式类型注解
-- 避免使用 `any` 类型
-- 使用 TypeScript 严格模式
+### 1. 型別安全
+- 總是提供明確型別註解
+- 避免使用 `any` 型別
+- 使用 TypeScript 嚴格模式
 
-### 2. 错误处理
-- 使用 `ErrorHandler.classify()` 分类错误
-- 使用 `ErrorHandler.withRetry()` 重试临时错误
-- 总是提供用户友好的错误提示
+### 2. 錯誤處理
+- 使用 `ErrorHandler.classify()` 分類錯誤
+- 使用 `ErrorHandler.withRetry()` 重試暫時性錯誤
+- 總是提供使用者友善的錯誤提示
 
-### 3. 代码质量
+### 3. 代碼品質
 ```bash
-# 提交前运行
+# 提交前運行
 npm run lint:fix
 npm test
 ```
 
-### 4. 文档
-- 为公共 API 添加 JSDoc 注释
-- 编写清晰的类型定义
+### 4. 文檔
+- 為公開 API 添加 JSDoc 註解
+- 編寫清晰的型別定義
 - 保持 README 最新
 
-## 📞 获取帮助
+## 📞 取得協助
 
-- 📖 [文档](./docs)
-- 🐛 [报告问题](https://github.com/allan1114/Gemini-Visual-Studio/issues)
-- 💬 [讨论](https://github.com/allan1114/Gemini-Visual-Studio/discussions)
+- 📖 [文檔](./docs)
+- 🐛 [報告問題](https://github.com/allan1114/Gemini-Visual-Studio/issues)
+- 💬 [討論](https://github.com/allan1114/Gemini-Visual-Studio/discussions)
 
-## 📝 许可
+## 📝 授權
 
-MIT License - 详见 [LICENSE](LICENSE)
+MIT License - 詳見 [LICENSE](LICENSE)
 
 ---
 
-**最后更新**: 2026-04-17  
-**当前版本**: 2.0.0  
-**状态**: ✅ 生产就绪
+**最後更新**: 2026-04-21  
+**當前版本**: 2.0.0  
+**狀態**: ✅ 生產就緒

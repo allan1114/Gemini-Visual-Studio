@@ -10,12 +10,16 @@ import { SupabaseService, supabase } from './services/supabaseService';
 import { AuthService } from './services/authService';
 import { SyncOrchestrator } from './services/syncOrchestrator';
 
+import ApiKeySetup from './components/ApiKeySetup';
+
 // Views
 import GenerateView from './components/GenerateView';
 import EditView from './components/EditView';
 import AvatarView from './components/AvatarView';
 import KeyWallet from './components/KeyWallet';
 import { GalleryGrid, PresetsList, MembersDB } from './components/StudioViews';
+
+const getErrMsg = (err: unknown): string => err instanceof Error ? err.message : String(err);
 
 const TRANSLATIONS = {
   en: {
@@ -102,7 +106,15 @@ const TRANSLATIONS = {
   }
 };
 
+const hasGeminiKey = (): boolean => {
+  try {
+    const keys = JSON.parse(localStorage.getItem(STORAGE_KEYS.API_KEYS) || '[]');
+    return keys.some((k: { isActive: boolean; key: string }) => k.isActive && k.key);
+  } catch { return false; }
+};
+
 const App: React.FC = () => {
+  const [showSettings, setShowSettings] = useState(!hasGeminiKey());
   const [view, setView] = useState<View>(View.GALLERY);
   const [language, setLanguage] = useState<Language>('zh'); 
   const [allEntries, setAllEntries] = useState<PromptEntry[]>([]);
@@ -233,7 +245,7 @@ const App: React.FC = () => {
         }
       } catch (err: unknown) {
         console.error("[Auth] Initial session check failed:", err);
-        if (err.message?.includes('Failed to fetch')) {
+        if (getErrMsg(err).includes('Failed to fetch')) {
           setAuthError(language === 'zh' ? '無法連線至 Supabase，請檢查 VITE_SUPABASE_URL 是否正確。' : 'Cannot connect to Supabase. Please check VITE_SUPABASE_URL.');
         }
         setIsInitialLoading(false);
@@ -279,10 +291,10 @@ const App: React.FC = () => {
         await AuthService.signIn(authForm.email, authForm.password);
       }
     } catch (err: unknown) {
-      if (err.message && err.message.includes('Failed to fetch')) {
+      if (getErrMsg(err).includes('Failed to fetch')) {
         setAuthError(language === 'zh' ? '網路連接失敗，請檢查您的網路設定。' : 'Network connection failed. Please check your internet connection.');
       } else {
-        setAuthError(err.message || "Authentication failed.");
+        setAuthError(getErrMsg(err) || "Authentication failed.");
       }
     } finally {
       setIsAuthLoading(false);
@@ -300,10 +312,10 @@ const App: React.FC = () => {
     try {
       await AuthService.signInWithGoogle();
     } catch (err: unknown) {
-      if (err.message && err.message.includes('Failed to fetch')) {
+      if (getErrMsg(err).includes('Failed to fetch')) {
         setAuthError(language === 'zh' ? '網路連接失敗，請檢查您的網路設定。' : 'Network connection failed. Please check your internet connection.');
       } else {
-        setAuthError(err.message);
+        setAuthError(getErrMsg(err));
       }
     }
   };
@@ -319,7 +331,7 @@ const App: React.FC = () => {
       await AuthService.signOut();
     } catch (err: unknown) {
       console.error("Sign out error:", err);
-      if (err.message && err.message.includes('Failed to fetch')) {
+      if (getErrMsg(err).includes('Failed to fetch')) {
         setNetworkError(t.fetchError);
       }
     } finally {
@@ -374,7 +386,7 @@ const App: React.FC = () => {
             zip.file(`${e.id.substring(0,8)}.png`, await r.blob()); 
           } catch (err: unknown) {
             console.error(`Failed to fetch image ${e.id}:`, err);
-            if (err.message && err.message.includes('Failed to fetch')) {
+            if (getErrMsg(err).includes('Failed to fetch')) {
               setNetworkError(t.fetchError);
             }
             // Continue with other images
@@ -389,10 +401,10 @@ const App: React.FC = () => {
       l.click();
     } catch (err: unknown) {
       console.error("ZIP creation failed:", err);
-      if (err.message && err.message.includes('Failed to fetch')) {
+      if (getErrMsg(err).includes('Failed to fetch')) {
         setNetworkError(t.fetchError);
       } else {
-        alert("ZIP creation failed: " + (err.message || "Unknown error"));
+        alert("ZIP creation failed: " + (getErrMsg(err) || "Unknown error"));
       }
     } finally { 
       setIsZipping(false); 
@@ -439,10 +451,10 @@ const App: React.FC = () => {
       alert(t.importSuccess);
     } catch (err: unknown) { 
       console.error("Import failed:", err);
-      if (err.message && err.message.includes('Failed to fetch')) {
+      if (getErrMsg(err).includes('Failed to fetch')) {
         setNetworkError(t.fetchError);
       } else {
-        alert(`${t.importError}: ${err.message}`); 
+        alert(`${t.importError}: ${getErrMsg(err)}`); 
       }
     } finally {
       setIsImporting(false);
@@ -458,6 +470,10 @@ const App: React.FC = () => {
     }
     return res;
   }, [allEntries, view, user, searchTerm]);
+
+  if (showSettings) {
+    return <ApiKeySetup language={language} onComplete={() => setShowSettings(false)} />;
+  }
 
   if (isInitialLoading) {
     return (
@@ -553,6 +569,7 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center gap-4">
             <button onClick={() => setShowHelp(true)} className="px-4 py-2 bg-indigo-500/10 text-indigo-400 rounded-full text-xs font-bold"><i className="fa-solid fa-circle-question mr-2"></i>{t.help}</button>
+            <button onClick={() => setShowSettings(true)} title={language === 'zh' ? 'API Keys 設定' : 'API Key Settings'} className="px-3 py-2 bg-white/5 rounded-full text-xs font-bold hover:bg-white/10 transition-colors"><i className="fa-solid fa-gear"></i></button>
             <button onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')} className="px-4 py-2 bg-white/5 rounded-full text-xs font-bold">{(language === 'en' ? 'EN' : '中文')}</button>
             <div className="flex items-center gap-3 px-3 py-2 rounded-full glass border-indigo-500/20">
               <span className="text-sm font-medium">{user.username}</span>
