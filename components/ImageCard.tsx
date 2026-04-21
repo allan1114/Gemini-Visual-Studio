@@ -15,6 +15,18 @@ const ImageCard: React.FC<ImageCardProps> = ({ entry, onDelete, onRemix, isOwner
   const [showFocus, setShowFocus] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const isRemoteUrl = entry.imageUrl && !entry.imageUrl.startsWith('data:');
+  const shareText = encodeURIComponent(`✨ AI Generated: "${entry.text.slice(0, 100)}" — via Gemini Visual Studio`);
+  const shareUrl = isRemoteUrl ? encodeURIComponent(entry.imageUrl!) : '';
+
+  const handleCopyLink = async () => {
+    if (!entry.imageUrl) return;
+    await navigator.clipboard.writeText(entry.imageUrl);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   // 判斷是否具備 UserID，通常具備 UserID 且非 anon 即代表已觸發雲端同步邏輯
   const isSynced = entry.userId && entry.userId !== 'anon';
@@ -230,15 +242,58 @@ const ImageCard: React.FC<ImageCardProps> = ({ entry, onDelete, onRemix, isOwner
                   </div>
                 </div>
 
+                {/* Share Section */}
+                <div className="space-y-2">
+                  <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Share</h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    <button
+                      onClick={handleNativeShare}
+                      title="Share"
+                      className="py-3 bg-white/5 hover:bg-indigo-600 rounded-xl flex items-center justify-center transition-all"
+                    >
+                      <i className="fa-solid fa-share-nodes text-sm"></i>
+                    </button>
+                    <button
+                      onClick={handleCopyLink}
+                      title={linkCopied ? 'Copied!' : 'Copy Image URL'}
+                      className={`py-3 rounded-xl flex items-center justify-center transition-all ${linkCopied ? 'bg-green-600' : 'bg-white/5 hover:bg-white/15'}`}
+                    >
+                      <i className={`fa-solid ${linkCopied ? 'fa-check' : 'fa-link'} text-sm`}></i>
+                    </button>
+                    {isRemoteUrl && (
+                      <a
+                        href={`https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Share on X / Twitter"
+                        className="py-3 bg-white/5 hover:bg-black rounded-xl flex items-center justify-center transition-all"
+                      >
+                        <i className="fa-brands fa-x-twitter text-sm"></i>
+                      </a>
+                    )}
+                    {isRemoteUrl && (
+                      <a
+                        href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Share on Facebook"
+                        className="py-3 bg-white/5 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-all"
+                      >
+                        <i className="fa-brands fa-facebook text-sm"></i>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={handleDownload}
                     className="flex-1 py-4 bg-white/5 hover:bg-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
                   >
                     Download
                   </button>
                   {onRemix && (
-                    <button 
+                    <button
                       onClick={() => { onRemix(entry); setShowFocus(false); }}
                       className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20"
                     >

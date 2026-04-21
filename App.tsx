@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import JSZip from 'jszip';
 import { View, PromptEntry, ModelChoice, User, Language, Preset, UsageStats, Member, GenerationConfig, AppError } from './types';
 import { STORAGE_KEYS } from './constants';
@@ -12,12 +12,20 @@ import { SyncOrchestrator } from './services/syncOrchestrator';
 
 import ApiKeySetup from './components/ApiKeySetup';
 
-// Views
-import GenerateView from './components/GenerateView';
-import EditView from './components/EditView';
-import AvatarView from './components/AvatarView';
-import KeyWallet from './components/KeyWallet';
-import { GalleryGrid, PresetsList, MembersDB } from './components/StudioViews';
+// Views - lazy loaded for code splitting
+const GenerateView = lazy(() => import('./components/GenerateView'));
+const EditView = lazy(() => import('./components/EditView'));
+const AvatarView = lazy(() => import('./components/AvatarView'));
+const KeyWallet = lazy(() => import('./components/KeyWallet'));
+const GalleryGrid = lazy(() => import('./components/StudioViews').then(m => ({ default: m.GalleryGrid })));
+const PresetsList = lazy(() => import('./components/StudioViews').then(m => ({ default: m.PresetsList })));
+const MembersDB = lazy(() => import('./components/StudioViews').then(m => ({ default: m.MembersDB })));
+
+const ViewLoader = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+  </div>
+);
 
 const getErrMsg = (err: unknown): string => err instanceof Error ? err.message : String(err);
 
@@ -580,52 +588,54 @@ const App: React.FC = () => {
           </div>
         </header>
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-8 scrollbar-hide relative">
-          {view === View.GENERATE && (
-            <GenerateView language={language} t={t} usageStats={usageStats} onStatsUpdate={handleStatsUpdate} onSave={handleSaveEntry} onSavePreset={(p) => {StorageService.savePreset(p, user.id).then(() => refreshData(user));}} user={user} onAuthRequired={() => {}} initialData={remixData} onClearInitialData={() => setRemixData(null)} />
-          )}
-          {view === View.EDIT && <EditView language={language} t={t} usageStats={usageStats} onStatsUpdate={handleStatsUpdate} onSave={async (items, p, tags, m, config) => {
-              const currentUserId = user?.id || 'anon';
-              const entries = items.map(item => ({
-                id: crypto.randomUUID(),
-                userId: currentUserId,
-                author: user?.username || 'Anon',
-                text: p,
-                tags: Array.from(new Set([...tags, ...item.aiTags])),
-                timestamp: Date.now(),
-                imageUrl: item.url,
-                type: 'edit' as const,
-                model: m,
-                config
-              }));
-              await StorageService.saveEntries(entries, currentUserId);
-              setAllEntries(prev => [...entries.slice().reverse(), ...prev]);
-            }} user={user} />}
-          {view === View.AVATAR && <AvatarView language={language} t={t} usageStats={usageStats} onStatsUpdate={handleStatsUpdate} onSave={async (items, p, tags, m, config) => {
-              const currentUserId = user?.id || 'anon';
-              const entries = items.map(item => ({
-                id: crypto.randomUUID(),
-                userId: currentUserId,
-                author: user?.username || 'Anon',
-                text: p,
-                tags: Array.from(new Set([...tags, ...item.aiTags])),
-                timestamp: Date.now(),
-                imageUrl: item.url,
-                type: 'avatar' as const,
-                model: m,
-                config
-              }));
-              await StorageService.saveEntries(entries, currentUserId);
-              setAllEntries(prev => [...entries.slice().reverse(), ...prev]);
-            }} user={user} />}
-          {view === View.KEY_WALLET && <KeyWallet t={t} />}
-          {(view === View.GALLERY || view === View.STUDIO || view === View.PROMPTS) && (
-            <GalleryGrid language={language} entries={filtered} onDelete={async (id) => {
-              await StorageService.deleteEntry(id, user?.id); 
-              setAllEntries(prev => prev.filter(e => e.id !== id));
-            }} onBulkDelete={handleBulkDelete} user={user} searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedIds={selectedIds} toggleSelect={(id) => setSelectedIds(prev => {const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;})} selectAll={() => setSelectedIds(new Set(filtered.map(e => e.id)))} deselectAll={() => setSelectedIds(new Set())} onBulkDownload={handleBulkDownload} onImport={handleImportData} onExport={handleExportData} isZipping={isZipping} t={t} isPromptView={view === View.PROMPTS} onRemix={handleRemix} />
-          )}
-          {view === View.PRESETS && <PresetsList presets={presets} onDelete={(id) => {StorageService.deleteEntry(id, user?.id).then(() => refreshData(user));}} t={t} />}
-          {view === View.DATABASE && user && <MembersDB members={members} isLoading={isDbLoading} t={t} />}
+          <Suspense fallback={<ViewLoader />}>
+            {view === View.GENERATE && (
+              <GenerateView language={language} t={t} usageStats={usageStats} onStatsUpdate={handleStatsUpdate} onSave={handleSaveEntry} onSavePreset={(p) => {StorageService.savePreset(p, user.id).then(() => refreshData(user));}} user={user} onAuthRequired={() => {}} initialData={remixData} onClearInitialData={() => setRemixData(null)} />
+            )}
+            {view === View.EDIT && <EditView language={language} t={t} usageStats={usageStats} onStatsUpdate={handleStatsUpdate} onSave={async (items, p, tags, m, config) => {
+                const currentUserId = user?.id || 'anon';
+                const entries = items.map(item => ({
+                  id: crypto.randomUUID(),
+                  userId: currentUserId,
+                  author: user?.username || 'Anon',
+                  text: p,
+                  tags: Array.from(new Set([...tags, ...item.aiTags])),
+                  timestamp: Date.now(),
+                  imageUrl: item.url,
+                  type: 'edit' as const,
+                  model: m,
+                  config
+                }));
+                await StorageService.saveEntries(entries, currentUserId);
+                setAllEntries(prev => [...entries.slice().reverse(), ...prev]);
+              }} user={user} />}
+            {view === View.AVATAR && <AvatarView language={language} t={t} usageStats={usageStats} onStatsUpdate={handleStatsUpdate} onSave={async (items, p, tags, m, config) => {
+                const currentUserId = user?.id || 'anon';
+                const entries = items.map(item => ({
+                  id: crypto.randomUUID(),
+                  userId: currentUserId,
+                  author: user?.username || 'Anon',
+                  text: p,
+                  tags: Array.from(new Set([...tags, ...item.aiTags])),
+                  timestamp: Date.now(),
+                  imageUrl: item.url,
+                  type: 'avatar' as const,
+                  model: m,
+                  config
+                }));
+                await StorageService.saveEntries(entries, currentUserId);
+                setAllEntries(prev => [...entries.slice().reverse(), ...prev]);
+              }} user={user} />}
+            {view === View.KEY_WALLET && <KeyWallet t={t} />}
+            {(view === View.GALLERY || view === View.STUDIO || view === View.PROMPTS) && (
+              <GalleryGrid language={language} entries={filtered} onDelete={async (id) => {
+                await StorageService.deleteEntry(id, user?.id);
+                setAllEntries(prev => prev.filter(e => e.id !== id));
+              }} onBulkDelete={handleBulkDelete} user={user} searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedIds={selectedIds} toggleSelect={(id) => setSelectedIds(prev => {const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;})} selectAll={() => setSelectedIds(new Set(filtered.map(e => e.id)))} deselectAll={() => setSelectedIds(new Set())} onBulkDownload={handleBulkDownload} onImport={handleImportData} onExport={handleExportData} isZipping={isZipping} t={t} isPromptView={view === View.PROMPTS} onRemix={handleRemix} />
+            )}
+            {view === View.PRESETS && <PresetsList presets={presets} onDelete={(id) => {StorageService.deleteEntry(id, user?.id).then(() => refreshData(user));}} t={t} />}
+            {view === View.DATABASE && user && <MembersDB members={members} isLoading={isDbLoading} t={t} />}
+          </Suspense>
         </div>
         
         {/* Floating Scroll Navigation Buttons */}
