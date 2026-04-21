@@ -7,8 +7,8 @@ const storedConfig = (() => {
   try { return JSON.parse(localStorage.getItem('gvs_supabase_config') || '{}'); } catch { return {}; }
 })();
 
-const SUPABASE_URL = storedConfig.url || (import.meta.env.VITE_SUPABASE_URL as string) || '';
-const SUPABASE_ANON_KEY = storedConfig.anonKey || (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
+const SUPABASE_URL = storedConfig.url || (import.meta.env.VITE_SUPABASE_URL as string) || 'https://placeholder.supabase.co';
+const SUPABASE_ANON_KEY = storedConfig.anonKey || (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || 'placeholder-key';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
