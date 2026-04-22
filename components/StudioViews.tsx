@@ -1,14 +1,6 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-// @ts-ignore
-import * as ReactWindow from 'react-window';
-// @ts-ignore
-import * as AutoSizerPkg from 'react-virtualized-auto-sizer';
+import React, { useState, useRef } from 'react';
 import ImageCard from './ImageCard';
-
-const FixedSizeGrid = (ReactWindow as any).FixedSizeGrid;
-const AutoSizer = (AutoSizerPkg as any).AutoSizer || (AutoSizerPkg as any).default || AutoSizerPkg;
-/* Import Language type from types */
 import { PromptEntry, Preset, User, Language } from '../types';
 
 interface GalleryProps {
@@ -46,27 +38,6 @@ export const GalleryGrid: React.FC<GalleryProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const Cell = ({ columnIndex, rowIndex, style, data }: any) => {
-    const { columnCount, items, onDelete, onRemix, user, selectedIds, toggleSelect } = data;
-    const index = rowIndex * columnCount + columnIndex;
-    const entry = items[index];
-
-    if (!entry) return null;
-
-    return (
-      <div style={{ ...style, padding: '12px' }}>
-        <ImageCard 
-          entry={entry} 
-          onDelete={() => onDelete(entry.id)} 
-          onRemix={onRemix}
-          isOwner={entry.userId === user?.id} 
-          selected={selectedIds.has(entry.id)} 
-          onSelect={toggleSelect} 
-        />
-      </div>
-    );
   };
 
   if (isPromptView) {

@@ -116,10 +116,36 @@ const TRANSLATIONS = {
 
 const hasGeminiKey = (): boolean => {
   try {
+    if ((import.meta.env.VITE_GEMINI_API_KEY as string || '').trim()) return true;
     const keys = JSON.parse(localStorage.getItem(STORAGE_KEYS.API_KEYS) || '[]');
     return keys.some((k: { isActive: boolean; key: string }) => k.isActive && k.key);
   } catch { return false; }
 };
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? (
+        <div className="flex flex-col items-center justify-center h-64 gap-4 text-gray-500">
+          <i className="fa-solid fa-triangle-exclamation text-3xl text-yellow-500/60"></i>
+          <p className="text-xs font-bold uppercase tracking-widest">Failed to load component. Please refresh.</p>
+          <button onClick={() => this.setState({ hasError: false })} className="px-4 py-2 bg-white/5 rounded-xl text-xs font-bold hover:bg-white/10 transition-colors">
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(!hasGeminiKey());
@@ -480,7 +506,13 @@ const App: React.FC = () => {
   }, [allEntries, view, user, searchTerm]);
 
   if (showSettings) {
-    return <ApiKeySetup language={language} onComplete={() => setShowSettings(false)} />;
+    return (
+      <ApiKeySetup
+        language={language}
+        onComplete={() => setShowSettings(false)}
+        onGuestMode={!user ? () => { setShowSettings(false); handleGuestMode(); } : undefined}
+      />
+    );
   }
 
   if (isInitialLoading) {
@@ -547,9 +579,17 @@ const App: React.FC = () => {
             <i className="fa-brands fa-google text-lg text-white"></i>
             {t.googleLogin}
           </button>
-          <div className="text-center">
+          <div className="flex items-center justify-between">
             <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors">
               {authMode === 'login' ? t.noAccount : t.alreadyHaveAccount}
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="text-gray-600 hover:text-gray-400 text-xs font-bold transition-colors flex items-center gap-1.5"
+              title={language === 'zh' ? '設定 API Keys' : 'Configure API Keys'}
+            >
+              <i className="fa-solid fa-gear"></i>
+              {language === 'zh' ? '設定' : 'Settings'}
             </button>
           </div>
         </div>
@@ -588,6 +628,7 @@ const App: React.FC = () => {
           </div>
         </header>
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-8 scrollbar-hide relative">
+          <ErrorBoundary>
           <Suspense fallback={<ViewLoader />}>
             {view === View.GENERATE && (
               <GenerateView language={language} t={t} usageStats={usageStats} onStatsUpdate={handleStatsUpdate} onSave={handleSaveEntry} onSavePreset={(p) => {StorageService.savePreset(p, user.id).then(() => refreshData(user));}} user={user} onAuthRequired={() => {}} initialData={remixData} onClearInitialData={() => setRemixData(null)} />
@@ -636,6 +677,7 @@ const App: React.FC = () => {
             {view === View.PRESETS && <PresetsList presets={presets} onDelete={(id) => {StorageService.deleteEntry(id, user?.id).then(() => refreshData(user));}} t={t} />}
             {view === View.DATABASE && user && <MembersDB members={members} isLoading={isDbLoading} t={t} />}
           </Suspense>
+          </ErrorBoundary>
         </div>
         
         {/* Floating Scroll Navigation Buttons */}

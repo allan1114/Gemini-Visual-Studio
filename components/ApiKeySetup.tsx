@@ -4,10 +4,11 @@ import { ApiKeyRecord } from '../types';
 
 interface Props {
   onComplete: () => void;
+  onGuestMode?: () => void;
   language: 'en' | 'zh';
 }
 
-export default function ApiKeySetup({ onComplete, language }: Props) {
+export default function ApiKeySetup({ onComplete, onGuestMode, language }: Props) {
   const zh = language === 'zh';
   const [geminiKey, setGeminiKey] = useState('');
   const [supabaseUrl, setSupabaseUrl] = useState('');
@@ -131,6 +132,16 @@ export default function ApiKeySetup({ onComplete, language }: Props) {
           >
             {saving ? (zh ? '儲存中...' : 'Saving...') : (zh ? '開始使用' : 'Get Started')}
           </button>
+
+          {onGuestMode && (
+            <button
+              onClick={onGuestMode}
+              className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-gray-500 hover:text-gray-300 text-xs font-bold uppercase tracking-widest transition-all"
+            >
+              <i className="fa-solid fa-user-secret mr-2"></i>
+              {zh ? '跳過，以訪客身份繼續' : 'Skip & Continue as Guest'}
+            </button>
+          )}
         </div>
       </div>
     </div>
