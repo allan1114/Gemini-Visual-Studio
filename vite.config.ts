@@ -19,7 +19,6 @@ export default defineConfig({
           'vendor-d3': ['d3'],
           'vendor-zip': ['jszip'],
           'vendor-ui': ['lucide-react', 'motion', 'clsx', 'tailwind-merge'],
-          'vendor-virtual': ['react-window', 'react-virtualized-auto-sizer'],
         },
       },
     },
