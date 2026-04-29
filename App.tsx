@@ -537,7 +537,7 @@ const App: React.FC = () => {
     );
   }
 
-  if (isInitialLoading) {
+  if (isInitialLoading && !user) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#050505]">
         <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
