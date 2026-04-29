@@ -122,6 +122,16 @@ const hasGeminiKey = (): boolean => {
   } catch { return false; }
 };
 
+const hasSupabaseConfig = (): boolean => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('gvs_supabase_config') || '{}');
+    if (stored.url && stored.anonKey && !stored.url.includes('placeholder')) return true;
+    const envUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+    return !!(envUrl && envKey && !envUrl.includes('placeholder'));
+  } catch { return false; }
+};
+
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: React.ReactNode },
   { hasError: boolean }
@@ -315,6 +325,12 @@ const App: React.FC = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasSupabaseConfig()) {
+      setAuthError(language === 'zh'
+        ? '尚未設定 Supabase。請點擊右下角「設定」，填入 Supabase URL 和 Anon Key 後再試。'
+        : 'Supabase is not configured. Please click "Settings" and enter your Supabase URL and Anon Key first.');
+      return;
+    }
     setIsAuthLoading(true);
     setAuthError(null);
     try {
@@ -338,11 +354,17 @@ const App: React.FC = () => {
   const handleGuestMode = () => {
     const guestUser: User = { id: 'anon', username: 'Guest', isAdmin: false };
     setUser(guestUser);
-    setView(View.STUDIO);
+    setView(View.GENERATE);
     refreshData(guestUser);
   };
 
   const handleGoogleLogin = async () => {
+    if (!hasSupabaseConfig()) {
+      setAuthError(language === 'zh'
+        ? '請先在「設定」中填入 Supabase URL 和 Anon Key，才能使用 Google 登錄。'
+        : 'Please configure your Supabase URL and Anon Key in Settings before using Google login.');
+      return;
+    }
     try {
       await AuthService.signInWithGoogle();
     } catch (err: unknown) {
@@ -534,9 +556,26 @@ const App: React.FC = () => {
             <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mx-auto mb-6">
               <i className="fa-solid fa-layer-group text-white text-2xl"></i>
             </div>
-            <h1 className="text-3xl font-black mb-2 tracking-tight text-white">{t.welcomeTitle}</h1>
+            <h1 className="text-3xl font-black mb-2 tracking-tight text-white">{authMode === 'login' ? t.signIn : t.signUp}</h1>
             <p className="text-sm text-gray-500 font-medium leading-relaxed">{t.welcomeSubtitle}</p>
           </div>
+
+          {!hasSupabaseConfig() && (
+            <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl">
+              <div className="flex items-start gap-3">
+                <i className="fa-solid fa-triangle-exclamation text-yellow-500 mt-0.5 flex-shrink-0"></i>
+                <p className="text-xs text-yellow-400 font-bold leading-relaxed">
+                  {language === 'zh'
+                    ? 'Supabase 尚未設定。登錄/註冊需先在「設定」中填入 Supabase 憑證。'
+                    : 'Supabase is not configured. Login/signup requires Supabase credentials in Settings.'}
+                  {' '}
+                  <button onClick={() => setShowSettings(true)} className="underline hover:text-yellow-300 transition-colors">
+                    {language === 'zh' ? '前往設定 →' : 'Go to Settings →'}
+                  </button>
+                </p>
+              </div>
+            </div>
+          )}
 
           {authError && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl animate-in slide-in-from-top duration-300">
@@ -580,7 +619,11 @@ const App: React.FC = () => {
             {t.googleLogin}
           </button>
           <div className="flex items-center justify-between">
-            <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors">
+            <button
+              type="button"
+              onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(null); }}
+              className="text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors underline underline-offset-2"
+            >
               {authMode === 'login' ? t.noAccount : t.alreadyHaveAccount}
             </button>
             <button

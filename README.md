@@ -34,6 +34,102 @@
 
 > **金鑰只保存在你的瀏覽器本地，不會上傳到任何伺服器**
 
+---
+
+## ☁️ 連接 Supabase（啟用登錄、雲端同步）
+
+登錄、Google 帳號登錄及雲端同步功能需要連接 Supabase。以下是設定步驟：
+
+### 第一步：建立 Supabase 專案
+
+1. 前往 [supabase.com](https://supabase.com) 並免費註冊
+2. 點擊「New project」建立新專案
+3. 填寫專案名稱、資料庫密碼，選擇區域，然後點擊「Create new project」
+
+### 第二步：建立資料表
+
+在 Supabase 後台，前往 **SQL Editor**，執行以下 SQL：
+
+```sql
+-- 建立 profiles 表（儲存使用者資料）
+create table public.profiles (
+  id uuid references auth.users on delete cascade primary key,
+  username text,
+  is_admin boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- 開啟 Row Level Security
+alter table public.profiles enable row level security;
+
+-- 允許使用者讀取自己的 profile
+create policy "Users can view own profile"
+  on public.profiles for select
+  using (auth.uid() = id);
+
+-- 允許使用者更新自己的 profile
+create policy "Users can update own profile"
+  on public.profiles for update
+  using (auth.uid() = id);
+
+-- 新使用者自動建立 profile
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, username, is_admin)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
+    false
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+```
+
+### 第三步：啟用 Google OAuth（可選）
+
+若要使用 Google 帳號登錄：
+
+1. 在 Supabase 後台前往 **Authentication → Providers**
+2. 找到 **Google**，開啟啟用開關
+3. 前往 [Google Cloud Console](https://console.cloud.google.com) 建立 OAuth 憑證：
+   - 建立「OAuth 2.0 用戶端 ID」（類型選 Web）
+   - 授權重定向 URI 填入：`https://<your-project>.supabase.co/auth/v1/callback`
+4. 將 Google Client ID 和 Client Secret 填入 Supabase Google Provider 設定中
+
+### 第四步：取得 API 金鑰
+
+1. 在 Supabase 後台前往 **Project Settings → API**
+2. 複製以下兩個值：
+   - **Project URL**（格式：`https://xxxx.supabase.co`）
+   - **anon / public key**（`anon` 欄位）
+
+### 第五步：填入應用程式設定
+
+**方法 A：線上版本（GitHub Pages）**
+
+1. 開啟應用程式，點擊右上角 ⚙️ 設定
+2. 在「Supabase 設定」區塊填入：
+   - **Supabase URL**：貼上 Project URL
+   - **Supabase Anon Key**：貼上 anon key
+3. 點擊儲存，重新整理頁面即可登錄
+
+**方法 B：本地開發**
+
+在 `.env.local` 填入：
+
+```bash
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key_here
+```
+
+---
+
 ### 本地開發安裝
 
 ```bash
