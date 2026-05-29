@@ -4,7 +4,7 @@
 
 A frontend AI image generation, editing, prompt-building, and gallery app powered by the Google Gemini API. This project is published as a **GitHub Pages static site**, so Gemini and Supabase requests are made directly from each user's browser.
 
-> **Latest version: 2.1.0 (2026-05-29)** — Security hardening for public GitHub Pages deployment, fixed test configuration, tightened Service Worker caching, and refreshed documentation.
+> **Latest version: 2.2.0 (2026-05-29)** — Fixed the user-guide modal, added a Back button to Settings, OAuth now returns to the correct base path with expanded setup docs, the app version is shown in the top-right, and a GitHub Pages auto-deploy workflow was added.
 
 ## ✨ Highlights
 
@@ -127,10 +127,44 @@ create trigger on_auth_user_created
 
 ### 3. Google OAuth (optional)
 
-1. Go to Supabase → **Authentication → Providers → Google**.
-2. Create an OAuth Web Client in Google Cloud Console.
-3. Add this redirect URI: `https://<your-project>.supabase.co/auth/v1/callback`.
-4. Paste the Client ID / Secret back into Supabase.
+Follow every step — most "invalid Client ID" / "Client ID 唔啱" errors come from a
+mismatched redirect URI or the wrong OAuth client type.
+
+**a. Create the OAuth client in Google Cloud Console**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services → Credentials**.
+2. Configure the **OAuth consent screen** first (External, add your email as a test user).
+3. **Create Credentials → OAuth client ID** and choose application type **Web application** (NOT "Desktop" or "Android" — Supabase only accepts a Web client).
+4. Under **Authorized JavaScript origins**, add:
+   - `http://localhost:5173` (local dev)
+   - `https://<your-username>.github.io` (GitHub Pages)
+5. Under **Authorized redirect URIs**, add the **Supabase callback** exactly:
+   - `https://<your-project-ref>.supabase.co/auth/v1/callback`
+6. Click **Create** and copy the **Client ID** and **Client Secret**.
+
+**b. Paste the credentials into Supabase**
+
+1. Go to Supabase → **Authentication → Providers → Google** and enable it.
+2. Paste the **Client ID** and **Client Secret** — make sure there are no leading/trailing spaces (a stray space is the most common cause of the "invalid Client ID" error).
+3. The Client ID must end with `.apps.googleusercontent.com`. If it doesn't, you copied the wrong value.
+
+**c. Set the Supabase redirect allow-list**
+
+1. Go to Supabase → **Authentication → URL Configuration**.
+2. Set **Site URL** to your deployed app, including the base path:
+   - `https://<your-username>.github.io/Gemini-Visual-Studio/`
+3. Add the same URL (and `http://localhost:5173/` for local dev) to **Redirect URLs**.
+
+> The app redirects OAuth back to its own base path (`/Gemini-Visual-Studio/`), so the
+> exact deployed URL must be on the Supabase redirect allow-list or login will fail
+> after the Google prompt.
+
+**Still seeing "invalid Client ID"?**
+
+- Confirm the OAuth client type is **Web application**.
+- Confirm the redirect URI in Google matches the Supabase callback **character for character** (https, project ref, `/auth/v1/callback`, no trailing slash).
+- Re-copy the Client ID/Secret into Supabase (watch for whitespace) and save.
+- Wait a few minutes — Google credential changes can take a short time to propagate.
 
 ## 🧪 Common Commands
 
@@ -139,8 +173,19 @@ npm run lint          # ESLint + TypeScript noEmit
 npm test -- --run     # Run Vitest once
 npm run build         # TypeScript + Vite production build
 npm run preview       # Preview dist
-npm run deploy        # gh-pages -d dist
+npm run deploy        # gh-pages -d dist (manual fallback)
 ```
+
+### Automatic deployment to GitHub Pages
+
+The `gh-pages` branch is this repo's GitHub Pages source. Every time a PR is
+merged into `main`, `.github/workflows/deploy-pages.yml` automatically runs
+lint / test / build and publishes `dist/` to the `gh-pages` branch, so the live
+site always reflects the latest version.
+
+- You can also trigger it manually from GitHub → **Actions → Deploy to GitHub Pages → Run workflow**.
+- On first enable, go to repo **Settings → Pages** and set the Source to **Deploy from a branch → `gh-pages` / root**.
+- `npm run deploy` is still available as a manual fallback from your machine.
 
 For the public GitHub Pages version, verify the PR branch before merging or deploying:
 
@@ -184,6 +229,14 @@ Keep the previous known-good commit SHA handy; the commit immediately before thi
 ├── vite.config.ts           # GitHub Pages base path and build config
 └── vitest.config.ts         # Unit test config
 ```
+
+## ✅ 2.2.0 Changes
+
+- Fixed the user-guide ("Manual") button — it now opens a proper guide modal that can be closed/returned from.
+- Added a **Back** button to the Settings (API Keys) screen and pre-filled existing keys, so you can leave settings without being stuck.
+- Google OAuth now redirects back to the app's own base path (`/Gemini-Visual-Studio/`), and the README has detailed, correct setup steps to fix "invalid Client ID" errors.
+- The app version (`v2.2.0`) is now shown in the top-right header and on the login screen, sourced from `package.json`.
+- Added `.github/workflows/deploy-pages.yml` to auto-build and publish to the `gh-pages` branch on merge to `main`.
 
 ## ✅ 2.1.0 Check Results
 
