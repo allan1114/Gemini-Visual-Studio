@@ -28,8 +28,9 @@ export class AuthService {
       await SupabaseService.signIn(email, password);
       const user = await SupabaseService.getCurrentUser();
       return user;
-    } catch (err: any) {
-      throw new Error(err.message || 'Sign in failed');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`Sign in failed: ${message}`, { cause: err });
     }
   }
 
@@ -39,8 +40,9 @@ export class AuthService {
       await SupabaseService.signUp(email, password);
       const user = await SupabaseService.getCurrentUser();
       return user;
-    } catch (err: any) {
-      throw new Error(err.message || 'Sign up failed');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`Sign up failed: ${message}`, { cause: err });
     }
   }
 
@@ -48,8 +50,9 @@ export class AuthService {
   static async signInWithGoogle(): Promise<void> {
     try {
       await SupabaseService.signInWithGoogle();
-    } catch (err: any) {
-      throw new Error(err.message || 'Google sign in failed');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`Google sign in failed: ${message}`, { cause: err });
     }
   }
 
@@ -57,8 +60,9 @@ export class AuthService {
   static async signOut(): Promise<void> {
     try {
       await SupabaseService.signOut();
-    } catch (err: any) {
-      throw new Error(err.message || 'Sign out failed');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`Sign out failed: ${message}`, { cause: err });
     }
   }
 
@@ -73,7 +77,9 @@ export class AuthService {
 
   /** Subscribe to auth state changes */
   static onAuthStateChange(callback: (event: string, user: User | null) => void): () => void {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const mappedUser = await SupabaseService.mapUser(session.user);
         callback(event, mappedUser);
@@ -93,7 +99,8 @@ export class AuthService {
         resolve(null);
       }, timeoutMs);
 
-      supabase.auth.getSession()
+      supabase.auth
+        .getSession()
         .then(async ({ data: { session }, error }) => {
           clearTimeout(timeout);
           if (error) {

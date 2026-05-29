@@ -715,7 +715,7 @@ const App: React.FC = () => {
               <GalleryGrid language={language} entries={filtered} onDelete={async (id) => {
                 await StorageService.deleteEntry(id, user?.id);
                 setAllEntries(prev => prev.filter(e => e.id !== id));
-              }} onBulkDelete={handleBulkDelete} user={user} searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedIds={selectedIds} toggleSelect={(id) => setSelectedIds(prev => {const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;})} selectAll={() => setSelectedIds(new Set(filtered.map(e => e.id)))} deselectAll={() => setSelectedIds(new Set())} onBulkDownload={handleBulkDownload} onImport={handleImportData} onExport={handleExportData} isZipping={isZipping} t={t} isPromptView={view === View.PROMPTS} onRemix={handleRemix} />
+              }} onBulkDelete={handleBulkDelete} user={user} searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedIds={selectedIds} toggleSelect={(id) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; })} selectAll={() => setSelectedIds(new Set(filtered.map(e => e.id)))} deselectAll={() => setSelectedIds(new Set())} onBulkDownload={handleBulkDownload} onImport={handleImportData} onExport={handleExportData} isZipping={isZipping} t={t} isPromptView={view === View.PROMPTS} onRemix={handleRemix} />
             )}
             {view === View.PRESETS && <PresetsList presets={presets} onDelete={(id) => {StorageService.deleteEntry(id, user?.id).then(() => refreshData(user));}} t={t} />}
             {view === View.DATABASE && user && <MembersDB members={members} isLoading={isDbLoading} t={t} />}

@@ -1,4 +1,3 @@
-
 export interface SyncData {
   type: 'full_push' | 'pull' | 'ping';
   userId: string;
@@ -26,16 +25,20 @@ export class SyncService {
     }
 
     if (!trimmed.startsWith('http')) {
-      throw new Error("Invalid URL format. Must start with http:// or https://");
+      throw new Error('Invalid URL format. Must start with http:// or https://');
     }
 
     // Specific check for Google Apps Script URL types
     if (trimmed.includes('script.google.com')) {
       if (trimmed.includes('/d/')) {
-        throw new Error("Detected Project URL (/d/). You must use the Web App URL from 'Deploy' > 'New Deployment' which ends in '/exec'.");
+        throw new Error(
+          "Detected Project URL (/d/). You must use the Web App URL from 'Deploy' > 'New Deployment' which ends in '/exec'."
+        );
       }
       if (!trimmed.includes('/macros/s/') || !trimmed.endsWith('/exec')) {
-        throw new Error("Invalid Web App URL. Ensure it ends with '/exec'. Found in 'Deploy' > 'Test deployments' or 'New deployment'.");
+        throw new Error(
+          "Invalid Web App URL. Ensure it ends with '/exec'. Found in 'Deploy' > 'Test deployments' or 'New deployment'."
+        );
       }
     }
 
@@ -54,9 +57,12 @@ export class SyncService {
   /**
    * Refined request handler for Google Drive integration via GAS.
    */
-  private static async requestCloudWithJSON(data: SyncData, timeoutMs: number = 60000): Promise<any> {
+  private static async requestCloudWithJSON(
+    data: SyncData,
+    timeoutMs: number = 60000
+  ): Promise<any> {
     const url = this.getSyncUrl();
-    if (!url) throw new Error("Sync URL not configured");
+    if (!url) throw new Error('Sync URL not configured');
 
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -71,11 +77,11 @@ export class SyncService {
           'Content-Type': 'text/plain;charset=utf-8', // Bypass CORS preflight
         },
         body: JSON.stringify(data),
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       clearTimeout(id);
-      
+
       if (!response.ok) {
         throw new Error(`Cloud error: ${response.status} ${response.statusText}`);
       }
@@ -86,13 +92,18 @@ export class SyncService {
       } catch {
         return text;
       }
-    } catch (error: any) {
+    } catch (error) {
       clearTimeout(id);
-      if (error.name === 'AbortError') {
-        throw new Error("Request timed out. Please check your network or GAS script performance.");
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timed out. Please check your network or GAS script performance.', {
+          cause: error,
+        });
       }
-      if (error.message && error.message.includes('Failed to fetch')) {
-        throw new Error("Connection failed: Browser blocked the request. Ensure the script is deployed as a Web App and accessible to 'Anyone'.");
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        throw new Error(
+          "Connection failed: Browser blocked the request. Ensure the script is deployed as a Web App and accessible to 'Anyone'.",
+          { cause: error }
+        );
       }
       throw error;
     }
@@ -103,21 +114,24 @@ export class SyncService {
    */
   static async pushFullState(userId: string, entries: any[], presets: any[]): Promise<boolean> {
     try {
-      const result = await this.requestCloudWithJSON({
-        type: 'full_push',
-        userId,
-        metadata: {
-          deviceInfo: navigator.userAgent,
-          lastSyncAt: Date.now(),
-          appVersion: this.APP_VERSION,
-          itemCount: (entries?.length || 0) + (presets?.length || 0)
+      const result = await this.requestCloudWithJSON(
+        {
+          type: 'full_push',
+          userId,
+          metadata: {
+            deviceInfo: navigator.userAgent,
+            lastSyncAt: Date.now(),
+            appVersion: this.APP_VERSION,
+            itemCount: (entries?.length || 0) + (presets?.length || 0),
+          },
+          payload: { entries, presets },
+          timestamp: new Date().toISOString(),
         },
-        payload: { entries, presets },
-        timestamp: new Date().toISOString()
-      }, 90000); 
+        90000
+      );
       return !!result;
     } catch (err) {
-      console.error("Failed to push to cloud:", err);
+      console.error('Failed to push to cloud:', err);
       return false;
     }
   }
@@ -125,36 +139,42 @@ export class SyncService {
   /**
    * Pulls data from Google Drive.
    */
-  static async pullFullState(userId: string): Promise<{ entries: any[], presets: any[] } | null> {
+  static async pullFullState(userId: string): Promise<{ entries: any[]; presets: any[] } | null> {
     try {
-      const result = await this.requestCloudWithJSON({
-        type: 'pull',
-        userId,
-        timestamp: new Date().toISOString()
-      }, 45000);
-      
+      const result = await this.requestCloudWithJSON(
+        {
+          type: 'pull',
+          userId,
+          timestamp: new Date().toISOString(),
+        },
+        45000
+      );
+
       if (result && typeof result === 'object') {
-        const entries = result.entries || (result.payload?.entries) || [];
-        const presets = result.presets || (result.payload?.presets) || [];
+        const entries = result.entries || result.payload?.entries || [];
+        const presets = result.presets || result.payload?.presets || [];
         return { entries, presets };
       }
       return null;
     } catch (err) {
-      console.error("Failed to pull from cloud:", err);
+      console.error('Failed to pull from cloud:', err);
       return null;
     }
   }
 
   static async ping(userId: string): Promise<boolean> {
     try {
-      await this.requestCloudWithJSON({
-        type: 'ping',
-        userId,
-        timestamp: new Date().toISOString()
-      }, 20000);
+      await this.requestCloudWithJSON(
+        {
+          type: 'ping',
+          userId,
+          timestamp: new Date().toISOString(),
+        },
+        20000
+      );
       return true;
     } catch (e: any) {
-      console.error("Ping failed:", e);
+      console.error('Ping failed:', e);
       throw e;
     }
   }
