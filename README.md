@@ -4,7 +4,7 @@
 
 由 Google Gemini API 驅動的前端 AI 影像生成、編輯、提示詞與作品庫工具。此專案以 **GitHub Pages 靜態網站** 形式發佈，所有 Gemini / Supabase 呼叫都由使用者瀏覽器直接發出。
 
-> **最新版本：2.1.0（2026-05-29）** — 針對公開 GitHub Pages 部署完成安全加固、測試設定修正、Service Worker 快取收斂，以及文件更新。
+> **最新版本：2.2.0（2026-05-29）** — 修正使用手冊彈窗、設定頁加入返回鍵、Google OAuth 導回正確 base path 並補充設定教學、右上角顯示版本號，以及新增 GitHub Pages 自動部署 workflow。
 
 ## ✨ 功能重點
 
@@ -127,10 +127,42 @@ create trigger on_auth_user_created
 
 ### 3. Google OAuth（可選）
 
-1. Supabase → **Authentication → Providers → Google**。
-2. Google Cloud Console 建立 OAuth Web Client。
-3. Redirect URI 填：`https://<your-project>.supabase.co/auth/v1/callback`。
-4. 將 Client ID / Secret 填回 Supabase。
+請完整照做每一步 — 大部分「Client ID 唔啱 / invalid Client ID」錯誤，都是 redirect URI 不符或 OAuth client 類型選錯造成的。
+
+**a. 在 Google Cloud Console 建立 OAuth client**
+
+1. 前往 [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services → Credentials**。
+2. 先設定 **OAuth consent screen**（選 External，把自己的 email 加為 test user）。
+3. **Create Credentials → OAuth client ID**，應用類型必須選 **Web application**（不要選 Desktop / Android，Supabase 只接受 Web client）。
+4. 在 **Authorized JavaScript origins** 加入：
+   - `http://localhost:5173`（本機開發）
+   - `https://<your-username>.github.io`（GitHub Pages）
+5. 在 **Authorized redirect URIs** 準確填入 **Supabase callback**：
+   - `https://<your-project-ref>.supabase.co/auth/v1/callback`
+6. 按 **Create**，複製 **Client ID** 與 **Client Secret**。
+
+**b. 把憑證填回 Supabase**
+
+1. 前往 Supabase → **Authentication → Providers → Google** 並啟用。
+2. 貼上 **Client ID** 與 **Client Secret** — 確保前後沒有空格（多一個空格是「invalid Client ID」最常見原因）。
+3. Client ID 必須以 `.apps.googleusercontent.com` 結尾；若不是，代表複製到錯的值。
+
+**c. 設定 Supabase redirect 允許清單**
+
+1. 前往 Supabase → **Authentication → URL Configuration**。
+2. **Site URL** 填你已部署的網址，包含 base path：
+   - `https://<your-username>.github.io/Gemini-Visual-Studio/`
+3. 同一網址（以及本機 `http://localhost:5173/`）也要加入 **Redirect URLs**。
+
+> 本 App 會把 OAuth 導回自己的 base path（`/Gemini-Visual-Studio/`），所以該確切網址
+> 必須在 Supabase redirect 允許清單內，否則 Google 授權後會登入失敗。
+
+**仍然出現「Client ID 唔啱」？**
+
+- 確認 OAuth client 類型是 **Web application**。
+- 確認 Google 的 redirect URI 與 Supabase callback **逐字相符**（https、project ref、`/auth/v1/callback`、結尾不要多斜線）。
+- 重新把 Client ID / Secret 複製進 Supabase（小心空白字元）並儲存。
+- 稍等幾分鐘 — Google 憑證變更需要少許時間生效。
 
 ## 🧪 常用指令
 
@@ -139,8 +171,18 @@ npm run lint          # ESLint + TypeScript noEmit
 npm test -- --run     # Vitest 一次性執行
 npm run build         # TypeScript + Vite production build
 npm run preview       # 預覽 dist
-npm run deploy        # gh-pages -d dist
+npm run deploy        # gh-pages -d dist（手動部署，備用）
 ```
+
+### 自動部署到 GitHub Pages
+
+`gh-pages` branch 是本 repo GitHub Pages 的出口。每次 PR 合併到 `main`，
+`.github/workflows/deploy-pages.yml` 會自動跑 lint / test / build，
+再把 `dist/` 發佈到 `gh-pages` branch，確保線上版本永遠是最新版。
+
+- 也可在 GitHub → **Actions → Deploy to GitHub Pages → Run workflow** 手動觸發。
+- 首次啟用時，請到 repo **Settings → Pages**，將 Source 設為 **Deploy from a branch → `gh-pages` / root**。
+- 仍可用 `npm run deploy` 從本機手動部署作為備用方案。
 
 公開 GitHub Pages 版本建議用以下流程先驗證，確認可行可用才 merge / deploy：
 
@@ -184,6 +226,14 @@ npm run deploy
 ├── vite.config.ts           # GitHub Pages base path and build config
 └── vitest.config.ts         # Unit test config
 ```
+
+## ✅ 2.2.0 更新內容
+
+- 修正使用手冊（Manual）按鈕 — 現在會正常開啟說明彈窗，並可關閉 / 返回工作室。
+- 設定（API Keys）頁加入 **返回** 鍵，並預填已存在的金鑰，避免進入設定後無法離開。
+- Google OAuth 現在會導回 App 自己的 base path（`/Gemini-Visual-Studio/`），README 也補上完整正確的設定步驟，解決「Client ID 唔啱」錯誤。
+- 右上角 header 與登入畫面會顯示版本號（`v2.2.0`），來源為 `package.json`。
+- 新增 `.github/workflows/deploy-pages.yml`，合併到 `main` 後自動 build 並發佈到 `gh-pages` branch。
 
 ## ✅ 2.1.0 檢查結果
 

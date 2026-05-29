@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import JSZip from 'jszip';
 import { View, PromptEntry, ModelChoice, User, Language, Preset, UsageStats, Member, GenerationConfig, AppError } from './types';
-import { STORAGE_KEYS } from './constants';
+import { STORAGE_KEYS, APP_VERSION } from './constants';
 import Sidebar from './components/Sidebar';
 import { DBService } from './services/dbService';
 import { StorageService } from './services/storageService';
@@ -481,7 +481,7 @@ const App: React.FC = () => {
   };
 
   const handleExportData = () => {
-    const data = { entries: allEntries, presets: presets, exportDate: new Date().toISOString(), version: '2.2.0' };
+    const data = { entries: allEntries, presets: presets, exportDate: new Date().toISOString(), version: APP_VERSION };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -635,6 +635,9 @@ const App: React.FC = () => {
               {language === 'zh' ? '設定' : 'Settings'}
             </button>
           </div>
+          <p className="mt-8 text-center text-[10px] font-bold tracking-widest text-gray-700 uppercase">
+            Gemini Visual Studio · v{APP_VERSION}
+          </p>
         </div>
       </div>
     );
@@ -659,6 +662,12 @@ const App: React.FC = () => {
             <h2 className="text-xl font-bold tracking-tight capitalize">{t[view as keyof typeof t] || view}</h2>
           </div>
           <div className="flex items-center gap-4">
+            <span
+              className="hidden sm:inline-flex items-center px-3 py-1.5 bg-white/5 text-gray-500 rounded-full text-[10px] font-bold tracking-wider"
+              title={language === 'zh' ? '應用程式版本' : 'App version'}
+            >
+              v{APP_VERSION}
+            </span>
             <button onClick={() => setShowHelp(true)} className="px-4 py-2 bg-indigo-500/10 text-indigo-400 rounded-full text-xs font-bold"><i className="fa-solid fa-circle-question mr-2"></i>{t.help}</button>
             <button onClick={() => setShowSettings(true)} title={language === 'zh' ? 'API Keys 設定' : 'API Key Settings'} className="px-3 py-2 bg-white/5 rounded-full text-xs font-bold hover:bg-white/10 transition-colors"><i className="fa-solid fa-gear"></i></button>
             <button onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')} className="px-4 py-2 bg-white/5 rounded-full text-xs font-bold">{(language === 'en' ? 'EN' : '中文')}</button>
@@ -749,6 +758,43 @@ const App: React.FC = () => {
         </div>
       </main>
       
+      {showHelp && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setShowHelp(false)}>
+          <div
+            className="relative glass w-full max-w-2xl max-h-[85vh] overflow-y-auto scrollbar-hide p-8 sm:p-10 rounded-[2rem] border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowHelp(false)}
+              className="absolute top-6 right-6 w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+              title={t.helpClose}
+            >
+              <i className="fa-solid fa-xmark"></i>
+            </button>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                <i className="fa-solid fa-book-open text-white text-xl"></i>
+              </div>
+              <h2 className="text-2xl font-black tracking-tight text-white">{t.helpTitle}</h2>
+            </div>
+            <p className="text-sm text-gray-400 font-medium leading-relaxed mb-6">{t.helpIntro}</p>
+            <div className="space-y-4">
+              {[t.helpStep1, t.helpStep2, t.helpStep3, t.helpStep4].map((step, i) => (
+                <div key={i} className="p-4 bg-white/[0.03] border border-white/10 rounded-2xl text-sm text-gray-300 leading-relaxed">
+                  {step}
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowHelp(false)}
+              className="mt-8 w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95"
+            >
+              <i className="fa-solid fa-arrow-left mr-2"></i>{t.helpClose}
+            </button>
+          </div>
+        </div>
+      )}
+
       {isSyncing && (
         <div className="fixed bottom-10 left-10 z-[100] flex items-center gap-3 bg-indigo-600 px-5 py-3 rounded-2xl shadow-2xl animate-in slide-in-from-left duration-300">
            <i className="fa-solid fa-cloud-arrow-up animate-bounce"></i>

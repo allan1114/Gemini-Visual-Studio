@@ -98,11 +98,16 @@ export class SupabaseService {
   }
 
   static async signInWithGoogle() {
+    // Redirect back to the app's own base path (e.g. /Gemini-Visual-Studio/ on
+    // GitHub Pages), not just the domain root, so the OAuth callback lands on
+    // the running app. Falls back to origin when BASE_URL is unavailable.
+    const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+    const redirectTo = `${window.location.origin}${base}/`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
-      }
+        redirectTo,
+      },
     });
     if (error) throw error;
   }

@@ -8,13 +8,41 @@ interface Props {
   language: 'en' | 'zh';
 }
 
+/** Read the currently-saved Gemini key (if any) so the settings form can be pre-filled. */
+function readExistingGeminiKey(): string {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.API_KEYS);
+    if (!raw) return '';
+    const keys: ApiKeyRecord[] = JSON.parse(raw);
+    return keys.find(k => k.isActive)?.key ?? keys[0]?.key ?? '';
+  } catch {
+    return '';
+  }
+}
+
+/** Read the currently-saved Supabase config (if any). */
+function readExistingSupabase(): { url: string; anonKey: string } {
+  try {
+    const raw = localStorage.getItem('gvs_supabase_config');
+    if (!raw) return { url: '', anonKey: '' };
+    const cfg = JSON.parse(raw);
+    return { url: cfg.url ?? '', anonKey: cfg.anonKey ?? '' };
+  } catch {
+    return { url: '', anonKey: '' };
+  }
+}
+
 export default function ApiKeySetup({ onComplete, onGuestMode, language }: Props) {
   const zh = language === 'zh';
-  const [geminiKey, setGeminiKey] = useState('');
-  const [supabaseUrl, setSupabaseUrl] = useState('');
-  const [supabaseAnonKey, setSupabaseAnonKey] = useState('');
+  const existingSupabase = readExistingSupabase();
+  const [geminiKey, setGeminiKey] = useState(readExistingGeminiKey);
+  const [supabaseUrl, setSupabaseUrl] = useState(existingSupabase.url);
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState(existingSupabase.anonKey);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // A Gemini key already exists → this is an "edit settings" visit, so allow going back.
+  const canGoBack = readExistingGeminiKey().trim().length > 0;
 
   const handleSave = () => {
     if (!geminiKey.trim()) {
@@ -49,8 +77,17 @@ export default function ApiKeySetup({ onComplete, onGuestMode, language }: Props
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a] p-4">
-      <div className="w-full max-w-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a] p-4 overflow-y-auto">
+      <div className="w-full max-w-lg py-8">
+        {canGoBack && (
+          <button
+            onClick={onComplete}
+            className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-gray-300 text-xs font-bold transition-colors"
+          >
+            <i className="fa-solid fa-arrow-left"></i>
+            {zh ? '返回' : 'Back'}
+          </button>
+        )}
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
             <i className="fa-solid fa-key text-2xl text-white"></i>

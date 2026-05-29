@@ -1,5 +1,9 @@
 
 import { AspectRatio, ImageSize } from './types';
+import pkg from './package.json';
+
+/** Application version, sourced from package.json (single source of truth). */
+export const APP_VERSION: string = pkg.version;
 
 export const MODELS = {
   PRO: 'gemini-3-pro-image-preview',

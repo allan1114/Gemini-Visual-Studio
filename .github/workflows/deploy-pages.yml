@@ -1,0 +1,58 @@
+name: Deploy to GitHub Pages
+
+# Builds the production site and publishes it to the `gh-pages` branch
+# (the GitHub Pages source for this repo) so the live site always reflects
+# the latest merged version. Runs after every push to `main` (i.e. after a
+# PR is merged) and can also be triggered manually.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Allow one concurrent deployment; cancel in-progress runs for the same ref.
+concurrency:
+  group: 'pages-deploy'
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # required to push to the gh-pages branch
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint & type-check
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test -- --run
+
+      - name: Build
+        run: npm run build
+
+      # SPA fallback: GitHub Pages serves 404.html for unknown routes.
+      # Copying index.html ensures deep links / refreshes still load the app.
+      - name: Add SPA 404 fallback
+        run: cp dist/index.html dist/404.html
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
