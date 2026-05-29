@@ -6,7 +6,7 @@ import prettierConfig from 'eslint-config-prettier';
 
 export default [
   {
-    ignores: ['node_modules', 'dist', 'build']
+    ignores: ['node_modules', 'dist', 'build'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],
@@ -16,8 +16,8 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module',
         ecmaFeatures: {
-          jsx: true
-        }
+          jsx: true,
+        },
       },
       globals: {
         console: 'readonly',
@@ -63,12 +63,13 @@ export default [
         Date: 'readonly',
         Array: 'readonly',
         Uint8Array: 'readonly',
-        process: 'readonly'
-      }
+        process: 'readonly',
+        AbortController: 'readonly',
+      },
     },
     plugins: {
       '@typescript-eslint': tsPlugin,
-      'prettier': prettierPlugin
+      prettier: prettierPlugin,
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -77,8 +78,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'prettier/prettier': 'warn',
-      'no-console': 'off'
-    }
-  }
+      'no-console': 'off',
+    },
+  },
 ];
-

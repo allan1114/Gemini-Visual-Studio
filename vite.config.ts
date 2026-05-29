@@ -9,7 +9,7 @@ export default defineConfig({
   base: isTauri ? './' : '/Gemini-Visual-Studio/',
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {

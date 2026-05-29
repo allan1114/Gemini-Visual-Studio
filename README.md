@@ -2,56 +2,94 @@
 
 [English](./README.en.md) | 繁體中文
 
-專業級 AI 影像生成與編輯套件，由 Google Gemini API 驅動。
+由 Google Gemini API 驅動的前端 AI 影像生成、編輯、提示詞與作品庫工具。此專案以 **GitHub Pages 靜態網站** 形式發佈，所有 Gemini / Supabase 呼叫都由使用者瀏覽器直接發出。
 
-> **最新版本**: 2.0.0 - 完全重構，包含安全增強、架構優化、完整測試和文檔
+> **最新版本：2.1.0（2026-05-29）** — 針對公開 GitHub Pages 部署完成安全加固、測試設定修正、Service Worker 快取收斂，以及文件更新。
 
-## ✨ 核心功能
+## ✨ 功能重點
 
-- **🖼️ 4K 影像生成** - 使用 Gemini 3 Pro 生成超高分辨率影像
-- **✏️ AI 編輯工具** - 照片增強、風格轉換和修復
-- **👤 頭像創作** - 一致的角色設計生成
-- **📝 高級提示詞編輯器** - 專業級 AI 提示詞優化
-- **🎨 個人創意工作室** - 本地和雲端智能存儲管理
-- **🌍 多語言支援** - 繁體中文/英文完整介面
+- **AI 影像生成**：支援 `gemini-3-pro-image-preview` 與 `gemini-2.5-flash-image`。
+- **影像編輯**：照片增強、局部修復、背景處理、風格轉換。
+- **角色 / 頭像工作流**：用參考圖與提示詞建立一致角色設定。
+- **提示詞 Builder**：內建風格、構圖、鏡頭、光影、媒介等提示詞片段。
+- **本地作品庫**：IndexedDB / localStorage 保存歷史、預設與 API Key 錢包。
+- **可選 Supabase 同步**：啟用登入、Google OAuth、雲端備份與跨裝置同步。
+- **PWA 快取**：GitHub Pages 環境可離線載入已快取的靜態資產。
 
-## 🚀 5 分鐘快速開始
+## 🔐 公開 GitHub Pages 安全說明
+
+此 Repo 會公開部署，請特別注意：
+
+1. **不要把任何真實 API Key commit 入 Repo**。
+   - `.env`, `.env.local`, `.env.*.local` 已在 `.gitignore`。
+   - `.env.example` 只保留 placeholder。
+2. **前端環境變數不是秘密**。
+   - `VITE_*` 變數會被打包到瀏覽器端，任何訪客都可檢視。
+   - 若需要保護 Gemini Key，請改用後端 proxy / serverless function，不要直接放入 GitHub Pages build。
+3. **使用者自行輸入的 Gemini Key 只保存在其瀏覽器本地**。
+   - Key Wallet 使用 localStorage；同一瀏覽器 profile 內可讀取。
+   - 請提醒使用者避免在共用電腦保存金鑰。
+4. **Supabase 必須使用 RLS**。
+   - 只可在前端使用 `anon / public key`。
+   - 絕不可使用 `service_role` key。
+5. **已加固項目**。
+   - `index.html` 已加入 Content Security Policy。
+   - Font Awesome CDN 已加上 SRI、`crossorigin` 與 `referrerpolicy`。
+   - Service Worker 只處理同源、無 query 的 GitHub Pages GET 請求，避免快取 OAuth / API URL。
+   - Production build 關閉 source map。
+
+## 🚀 線上使用
+
+1. 開啟：<https://allan1114.github.io/Gemini-Visual-Studio/>
+2. 點擊設定 / Key Wallet。
+3. 輸入 Gemini API Key（可於 [Google AI Studio](https://aistudio.google.com/app/apikey) 建立）。
+4. 開始生成或編輯影像。
+
+## 🧑‍💻 本地開發
 
 ### 前置條件
 
+- Node.js 20+（建議 LTS）
+- npm 10+
+- Gemini API Key（本地可選；亦可在 UI 輸入）
+- Supabase project（雲端同步可選）
+
+### 安裝與啟動
+
 ```bash
-- Node.js 16+ 
-- npm 7+
-- Google Gemini API 金鑰（免費）
+git clone https://github.com/allan1114/Gemini-Visual-Studio.git
+cd Gemini-Visual-Studio
+npm install
+cp .env.example .env.local
+npm run dev
 ```
 
-### 線上使用（無需安裝）
+本機網址預設為 <http://localhost:5173>。
 
-1. 訪問：https://allan1114.github.io/Gemini-Visual-Studio
-2. 首次進入時，點擊設定按鈕 ⚙️
-3. 輸入 Gemini API 金鑰（[免費取得](https://aistudio.google.com/app/apikey)）
-4. 開始創作！
+### `.env.local` 範例
 
-> **金鑰只保存在你的瀏覽器本地，不會上傳到任何伺服器**
+```bash
+VITE_GEMINI_API_KEY=your_gemini_api_key
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
----
+> 注意：GitHub Pages build 不應包含共用或私有 Gemini Key。公開網站建議讓使用者自行輸入 Key。
 
-## ☁️ 連接 Supabase（啟用登錄、雲端同步）
+## ☁️ Supabase 設定（可選）
 
-登錄、Google 帳號登錄及雲端同步功能需要連接 Supabase。以下是設定步驟：
+### 1. 建立 project
 
-### 第一步：建立 Supabase 專案
+在 <https://supabase.com> 建立新專案，記下：
 
-1. 前往 [supabase.com](https://supabase.com) 並免費註冊
-2. 點擊「New project」建立新專案
-3. 填寫專案名稱、資料庫密碼，選擇區域，然後點擊「Create new project」
+- Project URL
+- `anon / public` key
 
-### 第二步：建立資料表
+### 2. 建立 `profiles` 表與 RLS policy
 
-在 Supabase 後台，前往 **SQL Editor**，執行以下 SQL：
+在 Supabase SQL Editor 執行：
 
 ```sql
--- 建立 profiles 表（儲存使用者資料）
 create table public.profiles (
   id uuid references auth.users on delete cascade primary key,
   username text,
@@ -59,20 +97,16 @@ create table public.profiles (
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- 開啟 Row Level Security
 alter table public.profiles enable row level security;
 
--- 允許使用者讀取自己的 profile
 create policy "Users can view own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
--- 允許使用者更新自己的 profile
 create policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id);
 
--- 新使用者自動建立 profile
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
@@ -91,334 +125,81 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 ```
 
-### 第三步：啟用 Google OAuth（可選）
+### 3. Google OAuth（可選）
 
-若要使用 Google 帳號登錄：
+1. Supabase → **Authentication → Providers → Google**。
+2. Google Cloud Console 建立 OAuth Web Client。
+3. Redirect URI 填：`https://<your-project>.supabase.co/auth/v1/callback`。
+4. 將 Client ID / Secret 填回 Supabase。
 
-1. 在 Supabase 後台前往 **Authentication → Providers**
-2. 找到 **Google**，開啟啟用開關
-3. 前往 [Google Cloud Console](https://console.cloud.google.com) 建立 OAuth 憑證：
-   - 建立「OAuth 2.0 用戶端 ID」（類型選 Web）
-   - 授權重定向 URI 填入：`https://<your-project>.supabase.co/auth/v1/callback`
-4. 將 Google Client ID 和 Client Secret 填入 Supabase Google Provider 設定中
-
-### 第四步：取得 API 金鑰
-
-1. 在 Supabase 後台前往 **Project Settings → API**
-2. 複製以下兩個值：
-   - **Project URL**（格式：`https://xxxx.supabase.co`）
-   - **anon / public key**（`anon` 欄位）
-
-### 第五步：填入應用程式設定
-
-**方法 A：線上版本（GitHub Pages）**
-
-1. 開啟應用程式，點擊右上角 ⚙️ 設定
-2. 在「Supabase 設定」區塊填入：
-   - **Supabase URL**：貼上 Project URL
-   - **Supabase Anon Key**：貼上 anon key
-3. 點擊儲存，重新整理頁面即可登錄
-
-**方法 B：本地開發**
-
-在 `.env.local` 填入：
+## 🧪 常用指令
 
 ```bash
-VITE_SUPABASE_URL=https://xxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key_here
+npm run lint          # ESLint + TypeScript noEmit
+npm test -- --run     # Vitest 一次性執行
+npm run build         # TypeScript + Vite production build
+npm run preview       # 預覽 dist
+npm run deploy        # gh-pages -d dist
 ```
 
----
+公開 GitHub Pages 版本建議用以下流程先驗證，確認可行可用才 merge / deploy：
 
-### 本地開發安裝
+1. 在 PR branch 跑 `npm run lint`、`npm test -- --run`、`npm run build`。
+2. 用 `npm run preview -- --host 127.0.0.1` 預覽 build output。
+3. 開啟 `/Gemini-Visual-Studio/` base path，確認首頁、設定 / Key Wallet、生成頁、作品庫頁可載入。
+4. 用測試 Gemini API Key 做一次低成本 smoke test；不要用正式共用 key。
+5. Supabase 如有啟用，先用測試帳號確認登入 / 登出 / 同步，不要直接用 production admin 帳號。
+
+如果部署後發現不可用，可以 rollback：
 
 ```bash
-# 1. 複製專案
-git clone https://github.com/allan1114/Gemini-Visual-Studio.git
-cd Gemini-Visual-Studio
+# 方案 A：GitHub UI
+# GitHub → Actions / Pages deployment → 選擇上一個成功 deployment → Re-run / redeploy
 
-# 2. 安裝依賴
-npm install
-
-# 3. 設定環境變數（可選，線上版本可跳過）
-cp .env.example .env.local
-
-# 4. 編輯 .env.local 添加你的 API 金鑰
-# VITE_GEMINI_API_KEY=your_api_key_here
-# VITE_SUPABASE_URL=your_supabase_url（可選）
-# VITE_SUPABASE_ANON_KEY=your_key（可選）
-
-# 5. 啟動開發伺服器
-npm run dev
-
-# 訪問 http://localhost:5173
-```
-
-## 📚 完整文檔
-
-### 開發指南
-
-```bash
-# 代碼品質檢查
-npm run lint        # ESLint + TypeScript
-npm run lint:fix    # 自動修復問題
-npm run format      # Prettier 格式化
-
-# 單元測試
-npm test            # 運行 vitest
-npm run test:ui     # 啟動測試 UI
-npm run test:coverage  # 涵蓋率報告
-
-# 構建和部署
-npm run build       # 生產構建
-npm run deploy      # 部署到 GitHub Pages
-```
-
-### 專案結構
-
-```
-src/
-├── components/          # UI 組件（10+ 個）
-├── services/            # 業務邏輯服務
-│   ├── authService.ts        # ✅ 認證管理
-│   ├── geminiService.ts      # 🤖 AI API 整合
-│   ├── storageService.ts     # 💾 本地存儲
-│   ├── supabaseService.ts    # ☁️ 雲端存儲
-│   └── syncOrchestrator.ts   # 🔄 數據同步
-├── hooks/               # 自訂 Hooks
-├── utils/               # 工具函數
-│   ├── errorHandler.ts       # ⚠️ 錯誤管理
-│   ├── i18n.ts              # 🌍 多語言
-│   └── apiKeyManager.ts      # 🔑 金鑰管理
-├── types.ts            # TypeScript 型別
-└── App.tsx            # 主應用組件
-```
-
-## 🔐 2.0.0 版本的關鍵改進
-
-### 1️⃣ 安全性（Phase 1）
-- ✅ 移除所有硬編碼的 API 金鑰
-- ✅ 使用 VITE_ 前綴的環境變數
-- ✅ 金鑰存儲在瀏覽器本地，永不上傳
-- ✅ 正確的 Supabase 憑證管理
-
-### 2️⃣ 架構（Phase 2）
-- ✅ 拆分 authService - 認證邏輯獨立
-- ✅ 拆分 syncOrchestrator - 數據同步獨立
-- ✅ 提取 i18n - 翻譯模組化
-- ✅ 減少 App.tsx 從 1062 行到 ~500 行
-
-### 3️⃣ 型別安全（Phase 3）
-- ✅ 替換 12+ `any` 型別
-- ✅ 新增 4 個型別定義
-- ✅ 100% TypeScript 嚴格模式
-
-### 4️⃣ 錯誤處理（Phase 4）
-- ✅ 創建 ErrorHandler 統一管理
-- ✅ 8 種標準錯誤分類
-- ✅ 自動重試暫時性錯誤（指數退避）
-- ✅ 多語言使用者友善提示
-
-### 5️⃣ 開發工具（Phase 5）
-- ✅ ESLint 代碼檢查
-- ✅ Prettier 自動格式化
-- ✅ Husky pre-commit 鉤子
-- ✅ lint-staged 按需檢查
-
-### 6️⃣ 單元測試（Phase 6）
-- ✅ Vitest 測試框架
-- ✅ 39+ 單元測試用例
-- ✅ 涵蓋核心服務
-
-### 7️⃣ 效能優化（Phase 7）
-- ✅ 修復 StorageService 並發競態條件
-- ✅ Promise-based 同步鎖
-- ✅ 防止重複同步
-
-### 8️⃣ 文檔（Phase 8）
-- ✅ JSDoc 註解所有關鍵服務
-- ✅ 完整的 README 教學
-- ✅ 型別定義文檔
-
-## 💡 使用示例
-
-### 認證
-
-```typescript
-import { AuthService } from './services/authService';
-
-// 登入
-const user = await AuthService.signIn('user@example.com', 'password');
-
-// 註冊
-await AuthService.signUp('new@example.com', 'password');
-
-// 取得目前使用者
-const currentUser = await AuthService.getCurrentUser();
-
-// 登出
-await AuthService.signOut();
-```
-
-### 錯誤處理
-
-```typescript
-import { ErrorHandler } from './utils/errorHandler';
-
-try {
-  const result = await someAsyncOperation();
-} catch (error) {
-  const errorInfo = ErrorHandler.classify(error);
-  
-  // 自動重試（最多 3 次）
-  const result = await ErrorHandler.withRetry(
-    () => someAsyncOperation(),
-    3,
-    1000
-  );
-}
-```
-
-### 數據同步
-
-```typescript
-import { SyncOrchestrator } from './services/syncOrchestrator';
-
-// 登入時同步
-await SyncOrchestrator.syncOnLogin(
-  user,
-  (entries, presets) => {
-    // 更新 UI
-  },
-  (error) => {
-    // 處理錯誤
-  }
-);
-
-// 手動同步
-await SyncOrchestrator.performCloudSync(
-  userId,
-  (entries) => { /* ... */ },
-  (error) => { /* ... */ }
-);
-```
-
-## 🧪 測試
-
-```bash
-# 運行所有測試
-npm test
-
-# 監視模式
-npm test -- --watch
-
-# 涵蓋率報告
-npm run test:coverage
-
-# 測試 UI
-npm run test:ui
-```
-
-### 測試涵蓋
-
-- ✅ ErrorHandler - 18 個測試
-- ✅ AuthService - 11 個測試  
-- ✅ SyncOrchestrator - 10 個測試
-
-## 📋 環境變數
-
-創建 `.env.local` 檔案（本地開發用）：
-
-```env
-# 必填：Google Gemini API 金鑰
-VITE_GEMINI_API_KEY=your_gemini_api_key
-
-# 可選：Supabase（用於雲端同步）
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key
-```
-
-**注意**：線上版本無需設定環境變數，直接在介面設定 API 金鑰即可。
-
-## 🚀 部署
-
-### GitHub Pages（推薦）
-
-```bash
-# 構建專案
+# 方案 B：Git revert 最新 commit，再重新 deploy
+git revert <bad_commit_sha>
 npm run build
+npm run deploy
 
-# 部署到 GitHub Pages
+# 方案 C：直接回到上一個已知可用 commit，再 deploy
+git checkout <known_good_commit_sha>
+npm install
+npm run build
 npm run deploy
 ```
 
-網站會發佈到：`https://你的使用者名.github.io/Gemini-Visual-Studio`
+建議保留上一個已知可用 commit SHA；今次改動前嘅直接上一個 commit 是 `bcf4367`。
 
-### 自訂伺服器
+## 📁 專案結構
 
-```bash
-# 生產構建
-npm run build
-
-# dist/ 資料夾包含所有靜態檔案
-# 可部署到任何靜態主機（Netlify, Vercel, etc）
+```text
+.
+├── App.tsx
+├── components/              # UI components and views
+├── hooks/                   # React hooks
+├── services/                # Gemini, Supabase, storage, sync, auth services
+├── utils/                   # Error handler and i18n
+├── public/sw.js             # GitHub Pages service worker
+├── index.html               # CSP and external stylesheet policy
+├── vite.config.ts           # GitHub Pages base path and build config
+└── vitest.config.ts         # Unit test config
 ```
 
-## 🏗️ 架構概覽
+## ✅ 2.1.0 檢查結果
 
-```
-使用者介面 (React Components)
-    ↓
-應用狀態 (App.tsx)
-    ↓
-業務邏輯服務層
-├─ AuthService ────→ Supabase Auth
-├─ GeminiService ──→ Google Gemini API
-├─ SyncOrchestrator → 數據同步協調
-├─ StorageService ─→ IndexedDB (本地)
-└─ SupabaseService → Supabase DB (雲端)
-    ↓
-錯誤處理和重試 (ErrorHandler)
-    ↓
-使用者介面更新
-```
+- 修正 ESLint blocking errors（未使用 expression、不可見空白、ESM `__dirname`、test global）。
+- 修正 Vitest 設定，服務層單元測試可在 Node environment 執行，不再依賴缺失的 jsdom。
+- 加入 CSP 與 CDN SRI，移除 inline Service Worker registration script。
+- 收斂 Service Worker cache scope，避免快取帶 query 的 URL 或外部 API。
+- 關閉 production source map，降低公開部署資訊曝露。
+- 更新 README 至 GitHub Pages 公開部署適用版本。
 
-## 🎯 最佳實踐
+## ⚠️ 已知限制
 
-### 1. 型別安全
-- 總是提供明確型別註解
-- 避免使用 `any` 型別
-- 使用 TypeScript 嚴格模式
+- GitHub Pages 是純靜態 hosting，無法真正隱藏前端 API Key。
+- `npm audit` 需要 npm registry audit endpoint；目前執行環境回傳 403，需在可存取 registry 的 CI / 本機重新跑。
+- Font Awesome 仍透過 CDN 載入；如需更嚴格供應鏈控制，可改為 vendored / npm bundled icon assets。
 
-### 2. 錯誤處理
-- 使用 `ErrorHandler.classify()` 分類錯誤
-- 使用 `ErrorHandler.withRetry()` 重試暫時性錯誤
-- 總是提供使用者友善的錯誤提示
+## 📄 License
 
-### 3. 代碼品質
-```bash
-# 提交前運行
-npm run lint:fix
-npm test
-```
-
-### 4. 文檔
-- 為公開 API 添加 JSDoc 註解
-- 編寫清晰的型別定義
-- 保持 README 最新
-
-## 📞 取得協助
-
-- 📖 [文檔](./docs)
-- 🐛 [報告問題](https://github.com/allan1114/Gemini-Visual-Studio/issues)
-- 💬 [討論](https://github.com/allan1114/Gemini-Visual-Studio/discussions)
-
-## 📝 授權
-
-MIT License - 詳見 [LICENSE](LICENSE)
-
----
-
-**最後更新**: 2026-04-21  
-**當前版本**: 2.0.0  
-**狀態**: ✅ 生產就緒
+請依原 Repo license / 上游依賴 license 使用。若公開分發，請補上正式 LICENSE 檔案。

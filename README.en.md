@@ -2,327 +2,204 @@
 
 [繁體中文](./README.md) | English
 
-Professional-grade AI image generation and editing suite powered by Google's Gemini API.
+A frontend AI image generation, editing, prompt-building, and gallery app powered by the Google Gemini API. This project is published as a **GitHub Pages static site**, so Gemini and Supabase requests are made directly from each user's browser.
 
-> **Latest Version**: 2.0.0 - Complete refactor with security enhancements, architecture optimization, comprehensive testing, and documentation
+> **Latest version: 2.1.0 (2026-05-29)** — Security hardening for public GitHub Pages deployment, fixed test configuration, tightened Service Worker caching, and refreshed documentation.
 
-## ✨ Core Features
+## ✨ Highlights
 
-- **🖼️ 4K Image Generation** - Generate ultra-high-resolution images using Gemini 3 Pro
-- **✏️ AI Editing Tools** - Photo enhancement, style transfer, and image restoration
-- **👤 Avatar Creation** - Consistent character design generation
-- **📝 Advanced Prompt Editor** - Professional-grade AI prompt optimization
-- **🎨 Creative Studio** - Smart storage management for both local and cloud
-- **🌍 Multi-language Support** - Full Traditional Chinese & English interface
+- **AI image generation** with `gemini-3-pro-image-preview` and `gemini-2.5-flash-image`.
+- **Image editing** for enhancement, inpainting, background handling, and style transfer.
+- **Avatar / character workflows** using source images and prompt chips.
+- **Prompt Builder** with style, composition, lens, lighting, and medium presets.
+- **Local creative library** using IndexedDB / localStorage for history, presets, and the API Key Wallet.
+- **Optional Supabase sync** for login, Google OAuth, cloud backup, and cross-device sync.
+- **PWA caching** so previously cached static assets can load from GitHub Pages offline.
 
-## 🚀 Get Started in 5 Minutes
+## 🔐 Public GitHub Pages Security Notes
 
-### Prerequisites
+This repository is publicly deployed. Keep these rules in mind:
+
+1. **Never commit real API keys to the repository.**
+   - `.env`, `.env.local`, and `.env.*.local` are ignored.
+   - `.env.example` contains placeholders only.
+2. **Frontend environment variables are not secrets.**
+   - `VITE_*` variables are bundled into browser-readable JavaScript.
+   - If you must protect a Gemini key, use a backend proxy / serverless function instead of GitHub Pages-only hosting.
+3. **User-entered Gemini keys are stored only in that user's browser.**
+   - The Key Wallet uses localStorage.
+   - Users should avoid saving keys on shared computers.
+4. **Supabase must rely on RLS.**
+   - Use only the `anon / public key` in the frontend.
+   - Never expose a `service_role` key.
+5. **Hardening included in 2.1.0.**
+   - `index.html` includes a Content Security Policy.
+   - Font Awesome CDN has SRI, `crossorigin`, and `referrerpolicy` attributes.
+   - The Service Worker only handles same-origin, query-free GitHub Pages GET requests, avoiding OAuth / API URL caching.
+   - Production source maps are disabled.
+
+## 🚀 Online Usage
+
+1. Open <https://allan1114.github.io/Gemini-Visual-Studio/>.
+2. Open settings / Key Wallet.
+3. Enter a Gemini API Key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+4. Start generating or editing images.
+
+## 🧑‍💻 Local Development
+
+### Requirements
+
+- Node.js 20+ (LTS recommended)
+- npm 10+
+- Gemini API Key (optional locally; you can also enter it in the UI)
+- Supabase project (optional, only for cloud sync)
+
+### Install and run
 
 ```bash
-- Node.js 16+ 
-- npm 7+
-- Google Gemini API Key (free)
-```
-
-### Online Usage (No Installation)
-
-1. Visit: https://allan1114.github.io/Gemini-Visual-Studio
-2. On first visit, click the settings button ⚙️
-3. Enter your Gemini API Key ([Get free key](https://aistudio.google.com/app/apikey))
-4. Start creating!
-
-> **Your API keys are stored only in your browser and never uploaded anywhere**
-
-### Local Development Setup
-
-```bash
-# 1. Clone the repository
 git clone https://github.com/allan1114/Gemini-Visual-Studio.git
 cd Gemini-Visual-Studio
-
-# 2. Install dependencies
 npm install
-
-# 3. Configure environment variables (optional, can skip for online version)
 cp .env.example .env.local
-
-# 4. Edit .env.local and add your API keys
-# VITE_GEMINI_API_KEY=your_api_key_here
-# VITE_SUPABASE_URL=your_supabase_url (optional)
-# VITE_SUPABASE_ANON_KEY=your_key (optional)
-
-# 5. Start the development server
 npm run dev
-
-# Access http://localhost:5173
 ```
 
-## 📚 Complete Documentation
+The local dev server defaults to <http://localhost:5173>.
 
-### Development Guide
+### Example `.env.local`
 
 ```bash
-# Code quality checks
-npm run lint        # ESLint + TypeScript
-npm run lint:fix    # Auto-fix issues
-npm run format      # Prettier formatting
-
-# Unit tests
-npm test            # Run vitest
-npm run test:ui     # Launch test UI
-npm run test:coverage  # Coverage report
-
-# Build and deployment
-npm run build       # Production build
-npm run deploy      # Deploy to GitHub Pages
-```
-
-### Project Structure
-
-```
-src/
-├── components/          # UI Components (10+)
-├── services/            # Business Logic Services
-│   ├── authService.ts        # ✅ Authentication
-│   ├── geminiService.ts      # 🤖 AI API Integration
-│   ├── storageService.ts     # 💾 Local Storage
-│   ├── supabaseService.ts    # ☁️ Cloud Storage
-│   └── syncOrchestrator.ts   # 🔄 Data Synchronization
-├── hooks/               # Custom Hooks
-├── utils/               # Utility Functions
-│   ├── errorHandler.ts       # ⚠️ Error Management
-│   ├── i18n.ts              # 🌍 Internationalization
-│   └── apiKeyManager.ts      # 🔑 API Key Management
-├── types.ts            # TypeScript Types
-└── App.tsx            # Main Application Component
-```
-
-## 🔐 Version 2.0.0 Key Improvements
-
-### 1️⃣ Security (Phase 1)
-- ✅ Removed all hardcoded API keys
-- ✅ Using VITE_ prefixed environment variables
-- ✅ API keys stored locally in browser, never uploaded
-- ✅ Proper Supabase credential management
-
-### 2️⃣ Architecture (Phase 2)
-- ✅ Separated authService - Independent authentication logic
-- ✅ Separated syncOrchestrator - Independent data synchronization
-- ✅ Extracted i18n - Modularized translations
-- ✅ Reduced App.tsx from 1062 lines to ~500 lines
-
-### 3️⃣ Type Safety (Phase 3)
-- ✅ Replaced 12+ `any` type annotations
-- ✅ Added 4 new type definitions
-- ✅ 100% TypeScript strict mode
-
-### 4️⃣ Error Handling (Phase 4)
-- ✅ Created ErrorHandler for centralized management
-- ✅ 8 standard error classifications
-- ✅ Automatic retry for transient errors (exponential backoff)
-- ✅ User-friendly multilingual error messages
-
-### 5️⃣ Developer Tools (Phase 5)
-- ✅ ESLint code checking
-- ✅ Prettier auto-formatting
-- ✅ Husky pre-commit hooks
-- ✅ lint-staged for selective checking
-
-### 6️⃣ Unit Testing (Phase 6)
-- ✅ Vitest testing framework
-- ✅ 39+ unit test cases
-- ✅ Coverage for core services
-
-### 7️⃣ Performance Optimization (Phase 7)
-- ✅ Fixed StorageService race conditions
-- ✅ Promise-based synchronization locks
-- ✅ Prevented duplicate syncs
-
-### 8️⃣ Documentation (Phase 8)
-- ✅ JSDoc comments for all critical services
-- ✅ Complete README documentation
-- ✅ Type definition documentation
-
-## 💡 Usage Examples
-
-### Authentication
-
-```typescript
-import { AuthService } from './services/authService';
-
-// Sign in
-const user = await AuthService.signIn('user@example.com', 'password');
-
-// Sign up
-await AuthService.signUp('new@example.com', 'password');
-
-// Get current user
-const currentUser = await AuthService.getCurrentUser();
-
-// Sign out
-await AuthService.signOut();
-```
-
-### Error Handling
-
-```typescript
-import { ErrorHandler } from './utils/errorHandler';
-
-try {
-  const result = await someAsyncOperation();
-} catch (error) {
-  const errorInfo = ErrorHandler.classify(error);
-  
-  // Automatic retry (max 3 attempts)
-  const result = await ErrorHandler.withRetry(
-    () => someAsyncOperation(),
-    3,
-    1000
-  );
-}
-```
-
-### Data Synchronization
-
-```typescript
-import { SyncOrchestrator } from './services/syncOrchestrator';
-
-// Sync on login
-await SyncOrchestrator.syncOnLogin(
-  user,
-  (entries, presets) => {
-    // Update UI
-  },
-  (error) => {
-    // Handle error
-  }
-);
-
-// Manual sync
-await SyncOrchestrator.performCloudSync(
-  userId,
-  (entries) => { /* ... */ },
-  (error) => { /* ... */ }
-);
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-npm test
-
-# Watch mode
-npm test -- --watch
-
-# Coverage report
-npm run test:coverage
-
-# Test UI
-npm run test:ui
-```
-
-### Test Coverage
-
-- ✅ ErrorHandler - 18 tests
-- ✅ AuthService - 11 tests  
-- ✅ SyncOrchestrator - 10 tests
-
-## 📋 Environment Variables
-
-Create `.env.local` file (for local development only):
-
-```env
-# Required: Google Gemini API Key
 VITE_GEMINI_API_KEY=your_gemini_api_key
-
-# Optional: Supabase (for cloud synchronization)
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-**Note**: The online version doesn't require environment variables. Configure your API key directly in the app settings interface.
+> Do not ship a shared or private Gemini key in the GitHub Pages build. For the public site, prefer user-provided keys.
 
-## 🚀 Deployment
+## ☁️ Supabase Setup (Optional)
 
-### GitHub Pages (Recommended)
+### 1. Create a project
+
+Create a project at <https://supabase.com> and copy:
+
+- Project URL
+- `anon / public` key
+
+### 2. Create the `profiles` table and RLS policies
+
+Run this in the Supabase SQL Editor:
+
+```sql
+create table public.profiles (
+  id uuid references auth.users on delete cascade primary key,
+  username text,
+  is_admin boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table public.profiles enable row level security;
+
+create policy "Users can view own profile"
+  on public.profiles for select
+  using (auth.uid() = id);
+
+create policy "Users can update own profile"
+  on public.profiles for update
+  using (auth.uid() = id);
+
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, username, is_admin)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
+    false
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+```
+
+### 3. Google OAuth (optional)
+
+1. Go to Supabase → **Authentication → Providers → Google**.
+2. Create an OAuth Web Client in Google Cloud Console.
+3. Add this redirect URI: `https://<your-project>.supabase.co/auth/v1/callback`.
+4. Paste the Client ID / Secret back into Supabase.
+
+## 🧪 Common Commands
 
 ```bash
-# Build the project
-npm run build
+npm run lint          # ESLint + TypeScript noEmit
+npm test -- --run     # Run Vitest once
+npm run build         # TypeScript + Vite production build
+npm run preview       # Preview dist
+npm run deploy        # gh-pages -d dist
+```
 
-# Deploy to GitHub Pages
+For the public GitHub Pages version, verify the PR branch before merging or deploying:
+
+1. Run `npm run lint`, `npm test -- --run`, and `npm run build` on the PR branch.
+2. Preview the production output with `npm run preview -- --host 127.0.0.1`.
+3. Open the `/Gemini-Visual-Studio/` base path and confirm the home screen, settings / Key Wallet, generation view, and gallery load correctly.
+4. Run one low-cost smoke test with a test Gemini API key; do not use a shared production key.
+5. If Supabase is enabled, verify login / logout / sync with a test account instead of a production admin account.
+
+If the deployed version is not usable, rollback is available:
+
+```bash
+# Option A: GitHub UI
+# GitHub → Actions / Pages deployment → choose the previous successful deployment → re-run / redeploy
+
+# Option B: revert the bad commit and deploy again
+git revert <bad_commit_sha>
+npm run build
+npm run deploy
+
+# Option C: check out a known-good commit and deploy it directly
+git checkout <known_good_commit_sha>
+npm install
+npm run build
 npm run deploy
 ```
 
-Your site will be published at: `https://your-username.github.io/Gemini-Visual-Studio`
+Keep the previous known-good commit SHA handy; the commit immediately before this hardening work was `bcf4367`.
 
-### Custom Server
+## 📁 Project Structure
 
-```bash
-# Production build
-npm run build
-
-# The dist/ folder contains all static files
-# Deploy to any static host (Netlify, Vercel, etc)
+```text
+.
+├── App.tsx
+├── components/              # UI components and views
+├── hooks/                   # React hooks
+├── services/                # Gemini, Supabase, storage, sync, auth services
+├── utils/                   # Error handler and i18n
+├── public/sw.js             # GitHub Pages service worker
+├── index.html               # CSP and external stylesheet policy
+├── vite.config.ts           # GitHub Pages base path and build config
+└── vitest.config.ts         # Unit test config
 ```
 
-## 🏗️ Architecture Overview
+## ✅ 2.1.0 Check Results
 
-```
-User Interface (React Components)
-    ↓
-Application State (App.tsx)
-    ↓
-Business Logic Service Layer
-├─ AuthService ────→ Supabase Auth
-├─ GeminiService ──→ Google Gemini API
-├─ SyncOrchestrator → Data Synchronization
-├─ StorageService ─→ IndexedDB (Local)
-└─ SupabaseService → Supabase DB (Cloud)
-    ↓
-Error Handling and Retry (ErrorHandler)
-    ↓
-User Interface Update
-```
+- Fixed blocking ESLint errors, including unused expressions, irregular whitespace, ESM `__dirname`, and test globals.
+- Updated Vitest to run service-layer unit tests in the Node environment without requiring missing jsdom.
+- Added CSP and CDN SRI, and removed the inline Service Worker registration script.
+- Tightened Service Worker cache scope to avoid caching query URLs or external APIs.
+- Disabled production source maps to reduce public deployment exposure.
+- Refreshed README content for GitHub Pages public deployment.
 
-## 🎯 Best Practices
+## ⚠️ Known Limits
 
-### 1. Type Safety
-- Always provide explicit type annotations
-- Avoid using `any` type
-- Use TypeScript strict mode
+- GitHub Pages is static hosting and cannot truly hide frontend API keys.
+- `npm audit` requires the npm registry audit endpoint; this environment returned 403, so rerun it in CI or on a machine with registry access.
+- Font Awesome is still loaded from a CDN. For stricter supply-chain control, vendor it or bundle icons through npm.
 
-### 2. Error Handling
-- Use `ErrorHandler.classify()` to categorize errors
-- Use `ErrorHandler.withRetry()` for transient errors
-- Always provide user-friendly error messages
+## 📄 License
 
-### 3. Code Quality
-```bash
-# Run before committing
-npm run lint:fix
-npm test
-```
-
-### 4. Documentation
-- Add JSDoc comments for public APIs
-- Write clear type definitions
-- Keep README up to date
-
-## 📞 Get Help
-
-- 📖 [Documentation](./docs)
-- 🐛 [Report Issues](https://github.com/allan1114/Gemini-Visual-Studio/issues)
-- 💬 [Discussions](https://github.com/allan1114/Gemini-Visual-Studio/discussions)
-
-## 📝 License
-
-MIT License - See [LICENSE](LICENSE) for details
-
----
-
-**Last Updated**: 2026-04-21  
-**Current Version**: 2.0.0  
-**Status**: ✅ Production Ready
+Use according to the original repository license and dependency licenses. If this is publicly redistributed, add a formal LICENSE file.
