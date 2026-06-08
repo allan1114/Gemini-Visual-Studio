@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ApiKeyRecord } from '../types';
-import { STORAGE_KEYS } from '../constants';
+import { ApiKeyRecord, ProviderType } from '../types';
+import { STORAGE_KEYS, PROVIDERS } from '../constants';
 import { GeminiService } from '../services/geminiService';
 import { encryptString, decryptString } from '../utils/secureStore';
 
@@ -27,7 +27,14 @@ interface KeyWalletProps {
 const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
   const [keys, setKeys] = useState<ApiKeyRecord[]>([]);
   const [isAdding, setIsAdding] = useState(false);
-  const [newKey, setNewKey] = useState({ label: '', key: '' });
+  const [newKey, setNewKey] = useState<{
+    label: string;
+    key: string;
+    provider: ProviderType;
+    baseUrl: string;
+    imageModelId: string;
+    textModelId: string;
+  }>({ label: '', key: '', provider: 'gemini', baseUrl: '', imageModelId: '', textModelId: '' });
   const [testingId, setTestingId] = useState<string | null>(null);
   const [hasStudioKey, setHasStudioKey] = useState(false);
 
@@ -70,9 +77,24 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
       key: newKey.key,
       isActive: keys.length === 0,
       status: 'unknown',
+      provider: newKey.provider,
+      ...(newKey.provider === 'openai-compatible'
+        ? {
+            baseUrl: newKey.baseUrl.trim() || PROVIDERS['openai-compatible'].defaultBaseUrl,
+            imageModelId: newKey.imageModelId.trim() || undefined,
+            textModelId: newKey.textModelId.trim() || undefined,
+          }
+        : {}),
     };
     saveKeys([...keys, record]);
-    setNewKey({ label: '', key: '' });
+    setNewKey({
+      label: '',
+      key: '',
+      provider: 'gemini',
+      baseUrl: '',
+      imageModelId: '',
+      textModelId: '',
+    });
     setIsAdding(false);
   };
 
@@ -114,7 +136,7 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
         <div>
           <h2 className="text-3xl font-black tracking-tight text-white mb-2">Key Wallet</h2>
           <p className="text-gray-500 text-sm font-medium">
-            Manage multiple Gemini API keys for Pro & Veo models.
+            Manage multiple AI provider keys (Gemini & OpenAI-compatible). Encrypted on this device.
           </p>
         </div>
         <div className="flex gap-3">
@@ -193,6 +215,9 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
                           : 'bg-gray-600'
                     }`}
                   ></div>
+                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 text-gray-400">
+                    {PROVIDERS[k.provider ?? 'gemini']?.label ?? 'Gemini'}
+                  </span>
                 </div>
                 <p className="text-xs font-mono text-gray-500 tracking-tighter">
                   {k.key.substring(0, 10)}••••••••••••••••{k.key.substring(k.key.length - 4)}
@@ -258,6 +283,24 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
               </div>
               <div>
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">
+                  Provider
+                </label>
+                <select
+                  value={newKey.provider}
+                  onChange={(e) =>
+                    setNewKey({ ...newKey, provider: e.target.value as ProviderType })
+                  }
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
+                >
+                  {(Object.keys(PROVIDERS) as ProviderType[]).map((p) => (
+                    <option key={p} value={p} className="bg-gray-900">
+                      {PROVIDERS[p].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">
                   API Key String
                 </label>
                 <input
@@ -265,9 +308,51 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
                   value={newKey.key}
                   onChange={(e) => setNewKey({ ...newKey, key: e.target.value })}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
-                  placeholder="AIza..."
+                  placeholder={newKey.provider === 'gemini' ? 'AIza...' : 'sk-...'}
                 />
               </div>
+              {newKey.provider === 'openai-compatible' && (
+                <>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">
+                      Base URL
+                    </label>
+                    <input
+                      type="text"
+                      value={newKey.baseUrl}
+                      onChange={(e) => setNewKey({ ...newKey, baseUrl: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      placeholder={PROVIDERS['openai-compatible'].defaultBaseUrl}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">
+                        Image Model
+                      </label>
+                      <input
+                        type="text"
+                        value={newKey.imageModelId}
+                        onChange={(e) => setNewKey({ ...newKey, imageModelId: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
+                        placeholder={PROVIDERS['openai-compatible'].defaultImageModel}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">
+                        Text Model
+                      </label>
+                      <input
+                        type="text"
+                        value={newKey.textModelId}
+                        onChange={(e) => setNewKey({ ...newKey, textModelId: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
+                        placeholder={PROVIDERS['openai-compatible'].defaultTextModel}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
               <div className="pt-4 flex gap-3">
                 <button
                   onClick={() => setIsAdding(false)}
