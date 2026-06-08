@@ -1,4 +1,3 @@
-
 export type ImageSize = '1K' | '2K' | '4K';
 export type AspectRatio = '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
 export type ModelChoice = 'flash' | 'pro';
@@ -10,6 +9,9 @@ export interface User {
   isAdmin: boolean;
 }
 
+/** Provider backend an API key targets. Re-exported from services/ai/types. */
+export type ProviderType = 'gemini' | 'openai-compatible';
+
 export interface ApiKeyRecord {
   id: string;
   label: string;
@@ -17,6 +19,14 @@ export interface ApiKeyRecord {
   isActive: boolean;
   lastTested?: number;
   status: 'active' | 'invalid' | 'unknown';
+  /** Defaults to 'gemini' when absent (back-compat with v1 stored keys). */
+  provider?: ProviderType;
+  /** OpenAI-compatible custom base URL. */
+  baseUrl?: string;
+  /** Optional override for the image model id. */
+  imageModelId?: string;
+  /** Optional override for the text model id. */
+  textModelId?: string;
 }
 
 export interface UsageStats {
@@ -70,7 +80,7 @@ export enum View {
   GALLERY = 'gallery',
   PRESETS = 'presets',
   DATABASE = 'database',
-  KEY_WALLET = 'key_wallet'
+  KEY_WALLET = 'key_wallet',
 }
 
 export interface Member {
