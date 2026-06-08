@@ -65,6 +65,12 @@ export default [
         Uint8Array: 'readonly',
         process: 'readonly',
         AbortController: 'readonly',
+        btoa: 'readonly',
+        atob: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        CryptoKey: 'readonly',
+        BufferSource: 'readonly',
       },
     },
     plugins: {

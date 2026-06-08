@@ -4,9 +4,16 @@ import tailwindcss from '@tailwindcss/vite';
 
 const isTauri = process.env.TAURI_ENV_PLATFORM !== undefined;
 
+// Base public path is environment-driven so the same build works on multiple
+// hosts:
+//   - GitHub Pages: served from a sub-path -> defaults to '/Gemini-Visual-Studio/'
+//   - Vercel / custom domain root: set VITE_BASE_PATH=/ in the project env
+//   - Tauri desktop: relative paths
+const basePath = isTauri ? './' : (process.env.VITE_BASE_PATH ?? '/Gemini-Visual-Studio/');
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: isTauri ? './' : '/Gemini-Visual-Studio/',
+  base: basePath,
   build: {
     outDir: 'dist',
     sourcemap: false,
