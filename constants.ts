@@ -9,6 +9,11 @@ export const MODELS = {
   FLASH: 'gemini-2.5-flash-image',
   /** Text/vision model used for prompt expansion, metadata, suggestions. */
   TEXT: 'gemini-3-flash-preview',
+  // Imagen 4 text-to-image models. Unlike the Nano Banana (*-image) models
+  // above, these have a free-tier quota and use the predict/generateImages API.
+  IMAGEN: 'imagen-4.0-generate-001',
+  IMAGEN_FAST: 'imagen-4.0-fast-generate-001',
+  IMAGEN_ULTRA: 'imagen-4.0-ultra-generate-001',
 };
 
 /**

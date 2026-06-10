@@ -62,6 +62,30 @@ function toGeminiSchema(schema: JsonSchema): Record<string, unknown> {
   return out;
 }
 
+/**
+ * Resolves an app ModelChoice to a concrete Gemini/Imagen model id and the API
+ * "kind" used to call it. Imagen models use the predict/generateImages API and
+ * have a free-tier quota; the Nano Banana (*-image) models use generateContent.
+ * `proOverride` lets a key configure a custom Pro image model id.
+ */
+export function resolveGeminiImageModel(
+  model: ImageGenRequest['model'],
+  proOverride?: string
+): { id: string; kind: 'gemini' | 'imagen' } {
+  switch (model) {
+    case 'imagen-4':
+      return { id: MODELS.IMAGEN, kind: 'imagen' };
+    case 'imagen-4-fast':
+      return { id: MODELS.IMAGEN_FAST, kind: 'imagen' };
+    case 'imagen-4-ultra':
+      return { id: MODELS.IMAGEN_ULTRA, kind: 'imagen' };
+    case 'pro':
+      return { id: proOverride || MODELS.PRO, kind: 'gemini' };
+    default:
+      return { id: MODELS.FLASH, kind: 'gemini' };
+  }
+}
+
 export class GeminiProvider implements AIProvider {
   readonly type = 'gemini' as const;
   private ai: GoogleGenAI;
@@ -71,6 +95,8 @@ export class GeminiProvider implements AIProvider {
   }
 
   private imageModel(model: ImageGenRequest['model']): string {
+    // Edit/inpaint/bg-removal only support the Nano Banana models; an Imagen
+    // choice falls back to Flash here (Imagen cannot do image-conditioned edits).
     if (model === 'pro') return this.endpoint.imageModelId || MODELS.PRO;
     return MODELS.FLASH;
   }
@@ -121,8 +147,13 @@ export class GeminiProvider implements AIProvider {
   }
 
   async generateImage(req: ImageGenRequest): Promise<ImageGenResult> {
+    const resolved = resolveGeminiImageModel(req.model, this.endpoint.imageModelId);
+    if (resolved.kind === 'imagen') {
+      return this.generateWithImagen(resolved.id, req);
+    }
+
     const result = await this.ai.models.generateContent({
-      model: this.imageModel(req.model),
+      model: resolved.id,
       contents: { parts: [{ text: req.prompt }] },
       config: {
         systemInstruction: req.systemInstruction,
@@ -136,6 +167,32 @@ export class GeminiProvider implements AIProvider {
       },
     });
     return this.processImageResponse(result);
+  }
+
+  /**
+   * Text-to-image via the Imagen predict API (ai.models.generateImages). Imagen
+   * has no system instruction / seed / temperature / safety settings knobs, so
+   * the system instruction is folded into the prompt. Returns 0 token usage.
+   */
+  private async generateWithImagen(modelId: string, req: ImageGenRequest): Promise<ImageGenResult> {
+    const prompt = req.systemInstruction ? `${req.systemInstruction}\n\n${req.prompt}` : req.prompt;
+    const response: any = await this.ai.models.generateImages({
+      model: modelId,
+      prompt,
+      config: { numberOfImages: 1, aspectRatio: req.aspectRatio },
+    });
+    const image = response?.generatedImages?.[0]?.image;
+    const bytes = image?.imageBytes;
+    if (!bytes) {
+      throw new Error(
+        'EMPTY_RESPONSE: No image data was returned. The prompt may have been blocked, or the daily free quota is exhausted.'
+      );
+    }
+    return {
+      url: `data:${image?.mimeType || 'image/png'};base64,${bytes}`,
+      inputTokens: 0,
+      outputTokens: 0,
+    };
   }
 
   async editImage(req: ImageEditRequest): Promise<ImageGenResult> {
