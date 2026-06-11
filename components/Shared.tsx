@@ -261,7 +261,21 @@ export const UsageCard: React.FC<{ stats: UsageStats; currentModel: ModelChoice;
   currentModel,
   t,
 }) => {
-  const { provider } = useActiveEndpoint();
+  const { provider, imageModelId } = useActiveEndpoint();
+  // For non-Gemini providers the engine is the provider's configured image
+  // model, not the Gemini Flash/Pro/Imagen choice.
+  const modelLabel =
+    provider !== 'gemini'
+      ? imageModelId || PROVIDERS[provider].defaultImageModel
+      : currentModel === 'pro'
+        ? 'Gemini 3 Pro'
+        : currentModel === 'imagen-4'
+          ? 'Imagen 4'
+          : currentModel === 'imagen-4-fast'
+            ? 'Imagen 4 Fast'
+            : currentModel === 'imagen-4-ultra'
+              ? 'Imagen 4 Ultra'
+              : 'Gemini 3 Flash';
   return (
     <div className="glass p-6 rounded-[1.5rem] border-white/5 space-y-5 bg-white/[0.02] shadow-2xl">
       <div className="flex items-center gap-3 mb-2">
@@ -280,16 +294,11 @@ export const UsageCard: React.FC<{ stats: UsageStats; currentModel: ModelChoice;
       <div className="space-y-4">
         <div className="flex justify-between items-center text-sm">
           <span className="text-gray-500 font-medium">{t.currentModel}</span>
-          <span className="text-gray-200 font-bold">
-            {currentModel === 'pro'
-              ? 'Gemini 3 Pro'
-              : currentModel === 'imagen-4'
-                ? 'Imagen 4'
-                : currentModel === 'imagen-4-fast'
-                  ? 'Imagen 4 Fast'
-                  : currentModel === 'imagen-4-ultra'
-                    ? 'Imagen 4 Ultra'
-                    : 'Gemini 3 Flash'}
+          <span
+            className="text-gray-200 font-bold text-right max-w-[60%] truncate"
+            title={modelLabel}
+          >
+            {modelLabel}
           </span>
         </div>
         <div className="flex justify-between items-center text-sm">
