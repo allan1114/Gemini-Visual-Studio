@@ -100,35 +100,63 @@ export const TuningControls: React.FC<TuningProps> = ({
   const models = MODEL_META.filter((m) => !m.imagenOnly || showImagen);
   // Semantic zone for the current temperature, used to highlight the scale.
   const tempZone = temperature <= 0.6 ? 0 : temperature >= 1.4 ? 2 : 1;
+  // The active provider decides what "engine" means: Gemini exposes the
+  // Flash/Pro/Imagen choices, whereas fal.ai / OpenAI-compatible providers run a
+  // single model configured per-key in the Key Wallet.
+  const { provider, imageModelId } = useActiveEndpoint();
+  const isGemini = provider === 'gemini';
 
   return (
     <div className="space-y-6">
       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-4">
         引擎選擇 (Model)
       </label>
-      <div className="grid grid-cols-1 gap-2 mb-6">
-        {models.map((m) => {
-          const isActive = currentModel === m.id;
-          return (
-            <button
-              key={m.id}
-              onClick={() => onModelChange(m.id)}
-              className={`relative p-4 pl-5 rounded-xl border-2 text-left transition-all flex items-center justify-between ${isActive ? m.active : 'border-white/5 bg-white/5 hover:bg-white/10'}`}
-            >
-              {isActive && (
-                <span
-                  className={`absolute left-0 top-2.5 bottom-2.5 w-1 rounded-full ${m.bar}`}
-                ></span>
-              )}
-              <div>
-                <div className="text-xs font-black uppercase">{t[m.nameKey] || m.fallbackName}</div>
-                <div className="text-[10px] text-gray-500 font-medium mt-0.5">{t[m.descKey]}</div>
+      {isGemini ? (
+        <div className="grid grid-cols-1 gap-2 mb-6">
+          {models.map((m) => {
+            const isActive = currentModel === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => onModelChange(m.id)}
+                className={`relative p-4 pl-5 rounded-xl border-2 text-left transition-all flex items-center justify-between ${isActive ? m.active : 'border-white/5 bg-white/5 hover:bg-white/10'}`}
+              >
+                {isActive && (
+                  <span
+                    className={`absolute left-0 top-2.5 bottom-2.5 w-1 rounded-full ${m.bar}`}
+                  ></span>
+                )}
+                <div>
+                  <div className="text-xs font-black uppercase">
+                    {t[m.nameKey] || m.fallbackName}
+                  </div>
+                  <div className="text-[10px] text-gray-500 font-medium mt-0.5">{t[m.descKey]}</div>
+                </div>
+                {isActive && <i className={`fa-solid fa-circle-check ${m.check}`}></i>}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="mb-6">
+          <div className="relative p-4 pl-5 rounded-xl border-2 border-indigo-500 bg-indigo-500/10 flex items-center justify-between">
+            <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-full bg-indigo-500"></span>
+            <div className="flex items-center gap-3 min-w-0">
+              <i className={`fa-solid ${PROVIDER_ICONS[provider]} text-indigo-400`}></i>
+              <div className="min-w-0">
+                <div className="text-xs font-black uppercase">
+                  {PROVIDERS[provider]?.label ?? provider}
+                </div>
+                <div className="text-[10px] text-gray-500 font-medium mt-0.5 truncate">
+                  {imageModelId || PROVIDERS[provider]?.defaultImageModel}
+                </div>
               </div>
-              {isActive && <i className={`fa-solid fa-circle-check ${m.check}`}></i>}
-            </button>
-          );
-        })}
-      </div>
+            </div>
+            <i className="fa-solid fa-circle-check text-indigo-400 shrink-0"></i>
+          </div>
+          <p className="text-[9px] text-gray-600 leading-relaxed mt-2">{t.engineManagedNote}</p>
+        </div>
+      )}
       {showRatio && (
         <>
           <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-4">
@@ -206,22 +234,26 @@ export const TuningControls: React.FC<TuningProps> = ({
   );
 };
 
-/** Reads the active key's provider from storage (defaults to Gemini). */
-function useActiveProvider(): ProviderType {
-  const [provider, setProvider] = React.useState<ProviderType>('gemini');
+/** Reads the active key's provider + image model from storage (defaults to Gemini). */
+function useActiveEndpoint(): { provider: ProviderType; imageModelId?: string } {
+  const [info, setInfo] = React.useState<{ provider: ProviderType; imageModelId?: string }>({
+    provider: 'gemini',
+  });
   React.useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.API_KEYS);
       if (raw) {
         const keys = JSON.parse(raw);
         const active = Array.isArray(keys) ? keys.find((k: any) => k.isActive) : null;
-        if (active?.provider) setProvider(active.provider);
+        if (active?.provider) {
+          setInfo({ provider: active.provider, imageModelId: active.imageModelId });
+        }
       }
     } catch {
       // Malformed storage — keep the Gemini default.
     }
   }, []);
-  return provider;
+  return info;
 }
 
 export const UsageCard: React.FC<{ stats: UsageStats; currentModel: ModelChoice; t: any }> = ({
@@ -229,7 +261,7 @@ export const UsageCard: React.FC<{ stats: UsageStats; currentModel: ModelChoice;
   currentModel,
   t,
 }) => {
-  const provider = useActiveProvider();
+  const { provider } = useActiveEndpoint();
   return (
     <div className="glass p-6 rounded-[1.5rem] border-white/5 space-y-5 bg-white/[0.02] shadow-2xl">
       <div className="flex items-center gap-3 mb-2">

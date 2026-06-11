@@ -14,7 +14,7 @@ function readExistingGeminiKey(): string {
     const raw = localStorage.getItem(STORAGE_KEYS.API_KEYS);
     if (!raw) return '';
     const keys: ApiKeyRecord[] = JSON.parse(raw);
-    return keys.find(k => k.isActive)?.key ?? keys[0]?.key ?? '';
+    return keys.find((k) => k.isActive)?.key ?? keys[0]?.key ?? '';
   } catch {
     return '';
   }
@@ -41,8 +41,12 @@ export default function ApiKeySetup({ onComplete, onGuestMode, language }: Props
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // A Gemini key already exists → this is an "edit settings" visit, so allow going back.
-  const canGoBack = readExistingGeminiKey().trim().length > 0;
+  // Allow going back whenever the app is already usable — either a saved key
+  // exists, or a build-time env key is present (e.g. on hosted preview builds
+  // where localStorage starts empty). Without this, opening Settings via the
+  // gear with only an env key would trap the user with no way back.
+  const envKey = ((import.meta.env.VITE_GEMINI_API_KEY as string) || '').trim();
+  const canGoBack = envKey.length > 0 || readExistingGeminiKey().trim().length > 0;
 
   const handleSave = () => {
     if (!geminiKey.trim()) {
@@ -63,10 +67,13 @@ export default function ApiKeySetup({ onComplete, onGuestMode, language }: Props
 
     const supabaseChanged = supabaseUrl.trim() || supabaseAnonKey.trim();
     if (supabaseChanged) {
-      localStorage.setItem('gvs_supabase_config', JSON.stringify({
-        url: supabaseUrl.trim(),
-        anonKey: supabaseAnonKey.trim(),
-      }));
+      localStorage.setItem(
+        'gvs_supabase_config',
+        JSON.stringify({
+          url: supabaseUrl.trim(),
+          anonKey: supabaseAnonKey.trim(),
+        })
+      );
     }
 
     if (supabaseChanged) {
@@ -114,7 +121,10 @@ export default function ApiKeySetup({ onComplete, onGuestMode, language }: Props
             <input
               type="password"
               value={geminiKey}
-              onChange={e => { setGeminiKey(e.target.value); setError(''); }}
+              onChange={(e) => {
+                setGeminiKey(e.target.value);
+                setError('');
+              }}
               placeholder="AIza..."
               className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
             />
@@ -135,39 +145,41 @@ export default function ApiKeySetup({ onComplete, onGuestMode, language }: Props
               <span className="px-2 py-0.5 bg-gray-500/20 text-gray-400 text-xs font-bold rounded-full">
                 {zh ? '可選' : 'Optional'}
               </span>
-              <h2 className="text-white font-semibold">Supabase {zh ? '（雲端同步）' : '(Cloud sync)'}</h2>
+              <h2 className="text-white font-semibold">
+                Supabase {zh ? '（雲端同步）' : '(Cloud sync)'}
+              </h2>
             </div>
             <div className="space-y-3">
               <input
                 type="text"
                 value={supabaseUrl}
-                onChange={e => setSupabaseUrl(e.target.value)}
+                onChange={(e) => setSupabaseUrl(e.target.value)}
                 placeholder="https://your-project.supabase.co"
                 className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-white/20 transition-colors"
               />
               <input
                 type="password"
                 value={supabaseAnonKey}
-                onChange={e => setSupabaseAnonKey(e.target.value)}
+                onChange={(e) => setSupabaseAnonKey(e.target.value)}
                 placeholder={zh ? 'Supabase Anon Key' : 'Supabase Anon Key'}
                 className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-white/20 transition-colors"
               />
             </div>
             <p className="mt-2 text-xs text-gray-600">
-              {zh ? '不填則使用本地儲存，資料不會同步到雲端' : 'Leave blank to use local storage only'}
+              {zh
+                ? '不填則使用本地儲存，資料不會同步到雲端'
+                : 'Leave blank to use local storage only'}
             </p>
           </div>
 
-          {error && (
-            <p className="text-red-400 text-sm text-center">{error}</p>
-          )}
+          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
           <button
             onClick={handleSave}
             disabled={saving}
             className="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
           >
-            {saving ? (zh ? '儲存中...' : 'Saving...') : (zh ? '開始使用' : 'Get Started')}
+            {saving ? (zh ? '儲存中...' : 'Saving...') : zh ? '開始使用' : 'Get Started'}
           </button>
 
           {onGuestMode && (
