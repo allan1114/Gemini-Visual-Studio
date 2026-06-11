@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ApiKeyRecord, ProviderType } from '../types';
-import { STORAGE_KEYS, PROVIDERS } from '../constants';
+import { STORAGE_KEYS, PROVIDERS, PROVIDER_ICONS } from '../constants';
 import { GeminiService } from '../services/geminiService';
 import { encryptString, decryptString } from '../utils/secureStore';
 
@@ -37,6 +37,8 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
   }>({ label: '', key: '', provider: 'gemini', baseUrl: '', imageModelId: '', textModelId: '' });
   const [testingId, setTestingId] = useState<string | null>(null);
   const [hasStudioKey, setHasStudioKey] = useState(false);
+  // Endpoint/model overrides are collapsed by default to keep the add form tidy.
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     loadKeys().then((loaded) => {
@@ -153,7 +155,10 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
             </button>
           )}
           <button
-            onClick={() => setIsAdding(true)}
+            onClick={() => {
+              setShowAdvanced(false);
+              setIsAdding(true);
+            }}
             className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all"
           >
             <i className="fa-solid fa-plus mr-2"></i> Add New Key
@@ -218,7 +223,10 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
                           : 'bg-gray-600'
                     }`}
                   ></div>
-                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 text-gray-400">
+                  <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 text-gray-400">
+                    <i
+                      className={`fa-solid ${PROVIDER_ICONS[k.provider ?? 'gemini']} text-indigo-400`}
+                    ></i>
                     {PROVIDERS[k.provider ?? 'gemini']?.label ?? 'Gemini'}
                   </span>
                 </div>
@@ -321,6 +329,22 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
                 />
               </div>
               {newKey.provider !== 'gemini' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced((v) => !v)}
+                    className="w-full flex items-center justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 py-2 hover:text-gray-200 transition-colors"
+                  >
+                    <span>
+                      <i className="fa-solid fa-sliders mr-2"></i>Endpoint &amp; Models
+                    </span>
+                    <i
+                      className={`fa-solid fa-chevron-down transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+                    ></i>
+                  </button>
+                </>
+              )}
+              {newKey.provider !== 'gemini' && showAdvanced && (
                 <>
                   <div>
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">

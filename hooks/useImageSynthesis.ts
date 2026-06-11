@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { GeminiService } from '../services/geminiService';
 import { ImageProcessingService } from '../services/imageProcessingService';
@@ -29,10 +28,15 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
 
   // Surface failures as a top-center toast (auto-dismiss) instead of an inline
   // banner at the bottom of the view. error state is kept for any callers that
-  // still read it.
+  // still read it. Rate-limit/quota failures get a calmer "warning" toast with a
+  // retry hint rather than the alarming red error styling.
   const reportError = useCallback((msg: string) => {
     setError(msg);
-    showToast(msg, 'error');
+    if (/429|rate limit|resource_exhausted|quota|503/i.test(msg)) {
+      showToast('Rate limit reached — please retry shortly.', 'warning');
+    } else {
+      showToast(msg, 'error');
+    }
   }, []);
 
   const checkApiKey = async (model: ModelChoice) => {
@@ -55,28 +59,171 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
         }
       }
     } catch (e) {
-      console.warn("API Key selection failed or not supported in this environment.", e);
+      console.warn('API Key selection failed or not supported in this environment.', e);
     }
   };
 
-  const generateSingle = useCallback(async (prompt: string, options: SynthesisOptions, source?: { url: string; mime: string; context?: string; type?: 'edit' | 'avatar' }) => {
-    setIsLoading(true);
-    setError(null);
-    setPreviews([]);
-    
-    try {
-      await checkApiKey(options.model);
-      
-      const dynamicNeg = await GeminiService.generateDynamicNegativePrompt(prompt).catch(() => "");
-      const enhancedNegative = [options.negativePrompt, dynamicNeg].filter(Boolean).join(', ');
+  const generateSingle = useCallback(
+    async (
+      prompt: string,
+      options: SynthesisOptions,
+      source?: { url: string; mime: string; context?: string; type?: 'edit' | 'avatar' }
+    ) => {
+      setIsLoading(true);
+      setError(null);
+      setPreviews([]);
 
-      let result;
-      if (source && source.type === 'edit') {
-        const identityContext = await GeminiService.describeSourceImage(source.url, source.mime).catch(() => "");
-        result = await GeminiService.editImage(
-          prompt,
-          source.context || "",
+      try {
+        await checkApiKey(options.model);
+
+        const dynamicNeg = await GeminiService.generateDynamicNegativePrompt(prompt).catch(
+          () => ''
+        );
+        const enhancedNegative = [options.negativePrompt, dynamicNeg].filter(Boolean).join(', ');
+
+        let result;
+        if (source && source.type === 'edit') {
+          const identityContext = await GeminiService.describeSourceImage(
+            source.url,
+            source.mime
+          ).catch(() => '');
+          result = await GeminiService.editImage(
+            prompt,
+            source.context || '',
+            source.url,
+            source.mime,
+            options.model,
+            options.aspectRatio,
+            options.imageSize,
+            enhancedNegative,
+            options.seed,
+            options.temperature,
+            identityContext
+          );
+        } else if (source && source.type === 'avatar') {
+          result = await GeminiService.editImage(
+            prompt,
+            'Character consistent portrait synthesis',
+            source.url,
+            source.mime,
+            options.model,
+            options.aspectRatio,
+            options.imageSize,
+            enhancedNegative,
+            options.seed,
+            options.temperature
+          );
+        } else {
+          result = await GeminiService.generateImage(
+            prompt,
+            options.aspectRatio,
+            options.imageSize,
+            options.model,
+            enhancedNegative,
+            options.seed,
+            options.temperature
+          );
+        }
+
+        const webpUrl = await ImageProcessingService.processToWebP(result.url);
+        onStatsUpdate(result.inputTokens, result.outputTokens);
+
+        const extended: ExtendedPreview = {
+          id: crypto.randomUUID(),
+          url: webpUrl,
+          aiTags: [],
+          aiDescription: '',
+        };
+
+        setPreviews([extended]);
+        setIsLoading(false);
+
+        // Background metadata analysis
+        GeminiService.generateMetadata(webpUrl, 'image/webp')
+          .then((metadata) => {
+            setPreviews((prev) =>
+              prev.map((p) =>
+                p.id === extended.id
+                  ? { ...p, aiTags: metadata.tags, aiDescription: metadata.description }
+                  : p
+              )
+            );
+          })
+          .catch(() => {});
+
+        return extended;
+      } catch (err: any) {
+        // Automatic fallback to Flash if Pro fails with refusal/safety
+        if (
+          options.model === 'pro' &&
+          (err.message?.includes('REFUSAL') || err.message === 'SAFETY_BLOCK')
+        ) {
+          console.log('Pro refused, falling back to Flash...');
+          return await generateSingle(prompt, { ...options, model: 'flash' }, source);
+        }
+
+        if (err.message === 'API_KEY_MISSING') {
+          try {
+            if (typeof (window as any).aistudio !== 'undefined') {
+              await (window as any).aistudio.openSelectKey();
+              reportError('Please select an API key from the dialog and try again.');
+            } else {
+              reportError('API Key is missing. Please add a key in the Key Wallet.');
+            }
+          } catch (e) {
+            reportError('API Key is missing. Please add a key in the Key Wallet.');
+          }
+        } else if (err.message === 'SAFETY_BLOCK') {
+          reportError('Safety Block: Try using more artistic/fashion terminology.');
+        } else if (err.message && err.message.includes('Model Refusal')) {
+          reportError(err.message);
+        } else if (
+          err.message === 'NETWORK_ERROR' ||
+          (err.message && err.message.includes('Failed to fetch'))
+        ) {
+          reportError(
+            'Network Connection Error: Please check your internet connection and try again.'
+          );
+        } else {
+          reportError(err.message || 'Generation failed.');
+        }
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [onStatsUpdate, reportError]
+  );
+
+  const generateInpaint = useCallback(
+    async (
+      instruction: string,
+      source: { url: string; mime: string; mask: string },
+      options: SynthesisOptions & { semanticTarget?: string }
+    ) => {
+      setIsLoading(true);
+      setError(null);
+      setPreviews([]);
+
+      try {
+        await checkApiKey(options.model);
+
+        // Use provided semantic target or analyze if not provided
+        const semanticTarget =
+          options.semanticTarget ||
+          (await GeminiService.analyzeMaskedRegion(source.url, source.mask, instruction).catch(
+            () => 'subject'
+          ));
+
+        const dynamicNeg = await GeminiService.generateDynamicNegativePrompt(instruction).catch(
+          () => ''
+        );
+        const enhancedNegative = [options.negativePrompt, dynamicNeg].filter(Boolean).join(', ');
+
+        const result = await GeminiService.inpaintImage(
+          instruction,
           source.url,
+          source.mask,
           source.mime,
           options.model,
           options.aspectRatio,
@@ -84,164 +231,77 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
           enhancedNegative,
           options.seed,
           options.temperature,
-          identityContext
+          semanticTarget
         );
-      } else if (source && source.type === 'avatar') {
-        result = await GeminiService.editImage(
-          prompt,
-          "Character consistent portrait synthesis",
-          source.url,
-          source.mime,
-          options.model,
-          options.aspectRatio,
-          options.imageSize,
-          enhancedNegative,
-          options.seed,
-          options.temperature
-        );
-      } else {
-        result = await GeminiService.generateImage(
-          prompt, 
-          options.aspectRatio, 
-          options.imageSize, 
-          options.model, 
-          enhancedNegative, 
-          options.seed, 
-          options.temperature
-        );
-      }
-      
-      const webpUrl = await ImageProcessingService.processToWebP(result.url);
-      onStatsUpdate(result.inputTokens, result.outputTokens);
 
-      const extended: ExtendedPreview = {
-        id: crypto.randomUUID(),
-        url: webpUrl,
-        aiTags: [],
-        aiDescription: ""
-      };
+        const webpUrl = await ImageProcessingService.processToWebP(result.url);
+        onStatsUpdate(result.inputTokens, result.outputTokens);
 
-      setPreviews([extended]);
-      setIsLoading(false);
+        const basePreview: ExtendedPreview = {
+          id: crypto.randomUUID(),
+          url: webpUrl,
+          aiTags: [],
+          aiDescription: '',
+        };
+        setPreviews([basePreview]);
+        setIsLoading(false);
 
-      // Background metadata analysis
-      GeminiService.generateMetadata(webpUrl, 'image/webp').then(metadata => {
-        setPreviews(prev => prev.map(p => p.id === extended.id ? { ...p, aiTags: metadata.tags, aiDescription: metadata.description } : p));
-      }).catch(() => {});
+        // Background metadata analysis
+        GeminiService.generateMetadata(webpUrl, 'image/webp')
+          .then((metadata) => {
+            setPreviews((prev) =>
+              prev.map((p) =>
+                p.id === basePreview.id
+                  ? { ...p, aiTags: metadata.tags, aiDescription: metadata.description }
+                  : p
+              )
+            );
+          })
+          .catch(() => {});
 
-      return extended;
-    } catch (err: any) {
-      // Automatic fallback to Flash if Pro fails with refusal/safety
-      if (options.model === 'pro' && (err.message?.includes('REFUSAL') || err.message === 'SAFETY_BLOCK')) {
-        console.log("Pro refused, falling back to Flash...");
-        return await generateSingle(prompt, { ...options, model: 'flash' }, source);
-      }
-
-      if (err.message === 'API_KEY_MISSING') {
-        try {
-          if (typeof (window as any).aistudio !== 'undefined') {
-            await (window as any).aistudio.openSelectKey();
-            reportError("Please select an API key from the dialog and try again.");
-          } else {
-            reportError("API Key is missing. Please add a key in the Key Wallet.");
-          }
-        } catch (e) {
-          reportError("API Key is missing. Please add a key in the Key Wallet.");
+        return basePreview;
+      } catch (err: any) {
+        // Automatic fallback to Flash if Pro fails with refusal/safety
+        if (
+          options.model === 'pro' &&
+          (err.message?.includes('REFUSAL') || err.message?.includes('SAFETY'))
+        ) {
+          console.log('Pro inpaint refused, falling back to Flash...');
+          return await generateInpaint(instruction, source, { ...options, model: 'flash' });
         }
-      } else if (err.message === 'SAFETY_BLOCK') {
-        reportError("Safety Block: Try using more artistic/fashion terminology.");
-      } else if (err.message && err.message.includes("Model Refusal")) {
-        reportError(err.message);
-      } else if (err.message === 'NETWORK_ERROR' || (err.message && err.message.includes('Failed to fetch'))) {
-        reportError("Network Connection Error: Please check your internet connection and try again.");
-      } else {
-        reportError(err.message || "Generation failed.");
-      }
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [onStatsUpdate, reportError]);
 
-  const generateInpaint = useCallback(async (
-    instruction: string,
-    source: { url: string; mime: string; mask: string },
-    options: SynthesisOptions & { semanticTarget?: string }
-  ) => {
-    setIsLoading(true);
-    setError(null);
-    setPreviews([]);
-    
-    try {
-      await checkApiKey(options.model);
-      
-      // Use provided semantic target or analyze if not provided
-      const semanticTarget = options.semanticTarget || 
-        await GeminiService.analyzeMaskedRegion(source.url, source.mask, instruction).catch(() => "subject");
-      
-      const dynamicNeg = await GeminiService.generateDynamicNegativePrompt(instruction).catch(() => "");
-      const enhancedNegative = [options.negativePrompt, dynamicNeg].filter(Boolean).join(', ');
-
-      const result = await GeminiService.inpaintImage(
-        instruction,
-        source.url,
-        source.mask,
-        source.mime,
-        options.model,
-        options.aspectRatio,
-        options.imageSize,
-        enhancedNegative,
-        options.seed,
-        options.temperature,
-        semanticTarget
-      );
-      
-      const webpUrl = await ImageProcessingService.processToWebP(result.url);
-      onStatsUpdate(result.inputTokens, result.outputTokens);
-
-      const basePreview: ExtendedPreview = {
-        id: crypto.randomUUID(),
-        url: webpUrl,
-        aiTags: [],
-        aiDescription: ""
-      };
-      setPreviews([basePreview]);
-      setIsLoading(false);
-
-      // Background metadata analysis
-      GeminiService.generateMetadata(webpUrl, 'image/webp').then(metadata => {
-        setPreviews(prev => prev.map(p => p.id === basePreview.id ? { ...p, aiTags: metadata.tags, aiDescription: metadata.description } : p));
-      }).catch(() => {});
-      
-      return basePreview;
-    } catch (err: any) {
-      // Automatic fallback to Flash if Pro fails with refusal/safety
-      if (options.model === 'pro' && (err.message?.includes('REFUSAL') || err.message?.includes('SAFETY'))) {
-        console.log("Pro inpaint refused, falling back to Flash...");
-        return await generateInpaint(instruction, source, { ...options, model: 'flash' });
-      }
-
-      if (err.message === 'API_KEY_MISSING') {
-        try {
-          if (typeof (window as any).aistudio !== 'undefined') {
-            await (window as any).aistudio.openSelectKey();
-            reportError("Please select an API key from the dialog and try again.");
-          } else {
-            reportError("API Key is missing. Please add a key in the Key Wallet.");
+        if (err.message === 'API_KEY_MISSING') {
+          try {
+            if (typeof (window as any).aistudio !== 'undefined') {
+              await (window as any).aistudio.openSelectKey();
+              reportError('Please select an API key from the dialog and try again.');
+            } else {
+              reportError('API Key is missing. Please add a key in the Key Wallet.');
+            }
+          } catch (e) {
+            reportError('API Key is missing. Please add a key in the Key Wallet.');
           }
-        } catch (e) {
-          reportError("API Key is missing. Please add a key in the Key Wallet.");
+        } else if (
+          err.message === 'NETWORK_ERROR' ||
+          (err.message && err.message.includes('Failed to fetch'))
+        ) {
+          reportError(
+            'Network Connection Error: Please check your internet connection and try again.'
+          );
+        } else {
+          reportError(
+            err.message && err.message.includes('SAFETY')
+              ? 'Inpaint blocked by safety filters.'
+              : err.message || 'Inpaint failed.'
+          );
         }
-      } else if (err.message === 'NETWORK_ERROR' || (err.message && err.message.includes('Failed to fetch'))) {
-        reportError("Network Connection Error: Please check your internet connection and try again.");
-      } else {
-        reportError(err.message && err.message.includes('SAFETY') ? "Inpaint blocked by safety filters." : (err.message || "Inpaint failed."));
+        return null;
+      } finally {
+        setIsLoading(false);
       }
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [onStatsUpdate, reportError]);
+    },
+    [onStatsUpdate, reportError]
+  );
 
   return {
     isLoading,
@@ -250,6 +310,6 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
     generateSingle,
     generateInpaint,
     setPreviews,
-    setError
+    setError,
   };
 };

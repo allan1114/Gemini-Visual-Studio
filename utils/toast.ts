@@ -5,7 +5,7 @@
  * single subscriber is <ToastHost/>, mounted once at the app root.
  */
 
-export type ToastKind = 'error' | 'info' | 'success';
+export type ToastKind = 'error' | 'info' | 'success' | 'warning';
 
 export interface ToastMessage {
   id: string;
