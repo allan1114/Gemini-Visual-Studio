@@ -1,11 +1,13 @@
 import { resolveActiveEndpoint } from './endpointResolver';
 import { GeminiProvider } from './GeminiProvider';
 import { OpenAICompatibleProvider } from './OpenAICompatibleProvider';
+import { FALProvider } from './FALProvider';
 import { AIProvider, ProviderType, ResolvedEndpoint } from './types';
 
 const registry: Record<ProviderType, (e: ResolvedEndpoint) => AIProvider> = {
   gemini: (e) => new GeminiProvider(e),
   'openai-compatible': (e) => new OpenAICompatibleProvider(e),
+  fal: (e) => new FALProvider(e),
 };
 
 /**

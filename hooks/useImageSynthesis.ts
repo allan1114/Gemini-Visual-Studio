@@ -4,6 +4,7 @@ import { GeminiService } from '../services/geminiService';
 import { ImageProcessingService } from '../services/imageProcessingService';
 import { AspectRatio, ImageSize, ModelChoice } from '../types';
 import { STORAGE_KEYS } from '../constants';
+import { showToast } from '../utils/toast';
 
 interface SynthesisOptions {
   model: ModelChoice;
@@ -25,6 +26,14 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
   const [isLoading, setIsLoading] = useState(false);
   const [previews, setPreviews] = useState<ExtendedPreview[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // Surface failures as a top-center toast (auto-dismiss) instead of an inline
+  // banner at the bottom of the view. error state is kept for any callers that
+  // still read it.
+  const reportError = useCallback((msg: string) => {
+    setError(msg);
+    showToast(msg, 'error');
+  }, []);
 
   const checkApiKey = async (model: ModelChoice) => {
     // Only Pro models require specific user-selected keys in AI Studio
@@ -132,27 +141,27 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
         try {
           if (typeof (window as any).aistudio !== 'undefined') {
             await (window as any).aistudio.openSelectKey();
-            setError("Please select an API key from the dialog and try again.");
+            reportError("Please select an API key from the dialog and try again.");
           } else {
-            setError("API Key is missing. Please add a key in the Key Wallet.");
+            reportError("API Key is missing. Please add a key in the Key Wallet.");
           }
         } catch (e) {
-          setError("API Key is missing. Please add a key in the Key Wallet.");
+          reportError("API Key is missing. Please add a key in the Key Wallet.");
         }
       } else if (err.message === 'SAFETY_BLOCK') {
-        setError("Safety Block: Try using more artistic/fashion terminology.");
+        reportError("Safety Block: Try using more artistic/fashion terminology.");
       } else if (err.message && err.message.includes("Model Refusal")) {
-        setError(err.message);
+        reportError(err.message);
       } else if (err.message === 'NETWORK_ERROR' || (err.message && err.message.includes('Failed to fetch'))) {
-        setError("Network Connection Error: Please check your internet connection and try again.");
+        reportError("Network Connection Error: Please check your internet connection and try again.");
       } else {
-        setError(err.message || "Generation failed.");
+        reportError(err.message || "Generation failed.");
       }
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [onStatsUpdate]);
+  }, [onStatsUpdate, reportError]);
 
   const generateInpaint = useCallback(async (
     instruction: string,
@@ -216,23 +225,23 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
         try {
           if (typeof (window as any).aistudio !== 'undefined') {
             await (window as any).aistudio.openSelectKey();
-            setError("Please select an API key from the dialog and try again.");
+            reportError("Please select an API key from the dialog and try again.");
           } else {
-            setError("API Key is missing. Please add a key in the Key Wallet.");
+            reportError("API Key is missing. Please add a key in the Key Wallet.");
           }
         } catch (e) {
-          setError("API Key is missing. Please add a key in the Key Wallet.");
+          reportError("API Key is missing. Please add a key in the Key Wallet.");
         }
       } else if (err.message === 'NETWORK_ERROR' || (err.message && err.message.includes('Failed to fetch'))) {
-        setError("Network Connection Error: Please check your internet connection and try again.");
+        reportError("Network Connection Error: Please check your internet connection and try again.");
       } else {
-        setError(err.message && err.message.includes('SAFETY') ? "Inpaint blocked by safety filters." : (err.message || "Inpaint failed."));
+        reportError(err.message && err.message.includes('SAFETY') ? "Inpaint blocked by safety filters." : (err.message || "Inpaint failed."));
       }
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [onStatsUpdate]);
+  }, [onStatsUpdate, reportError]);
 
   return {
     isLoading,

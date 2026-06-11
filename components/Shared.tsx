@@ -56,10 +56,10 @@ export const TuningControls: React.FC<TuningProps> = ({
           >
             <div className="text-xs font-black uppercase">
               {m === 'imagen-4'
-                ? t.engineImagen
+                ? t.engineImagen || 'Imagen 4'
                 : m === 'imagen-4-fast'
-                  ? t.engineImagenFast
-                  : t.engineImagenUltra}
+                  ? t.engineImagenFast || 'Imagen 4 Fast'
+                  : t.engineImagenUltra || 'Imagen 4 Ultra'}
             </div>
           </button>
         ))}

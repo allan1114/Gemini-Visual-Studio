@@ -35,7 +35,7 @@ const AvatarView: React.FC<AvatarViewProps> = ({ language, t, usageStats, onStat
   const [isSaved, setIsSaved] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const { isLoading, previews, error, generateSingle, setPreviews } = useImageSynthesis(onStatsUpdate);
+  const { isLoading, previews, generateSingle, setPreviews } = useImageSynthesis(onStatsUpdate);
 
   const onAddTag = (value: string, label: string, icon?: string, color?: string) => {
     setChips(prev => [...prev, { id: crypto.randomUUID(), value, label, icon, color }]);
@@ -172,7 +172,6 @@ const AvatarView: React.FC<AvatarViewProps> = ({ language, t, usageStats, onStat
             </div>
           </div>
         )}
-        {error && <div className="p-6 bg-red-500/10 border border-red-500/20 text-red-400 rounded-3xl text-xs font-bold animate-in slide-in-from-top duration-300"><i className="fa-solid fa-triangle-exclamation mr-2"></i> {error}</div>}
       </div>
       <div className="lg:col-span-4 space-y-6">
         <div className="glass p-8 rounded-3xl border-white/5 shadow-xl">
