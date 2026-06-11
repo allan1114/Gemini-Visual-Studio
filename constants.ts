@@ -1,4 +1,4 @@
-import { AspectRatio, ImageSize } from './types';
+import { AspectRatio, ImageSize, ProviderType } from './types';
 import pkg from './package.json';
 
 /** Application version, sourced from package.json (single source of truth). */
@@ -43,6 +43,13 @@ export const PROVIDERS = {
     defaultTextModel: 'google/gemini-flash-1.5',
   },
 } as const;
+
+/** Font Awesome icon (solid) representing each provider in the UI. */
+export const PROVIDER_ICONS: Record<ProviderType, string> = {
+  gemini: 'fa-gem',
+  'openai-compatible': 'fa-plug',
+  fal: 'fa-bolt',
+};
 
 export const ASPECT_RATIOS: AspectRatio[] = ['1:1', '3:4', '4:3', '9:16', '16:9'];
 export const IMAGE_SIZES: ImageSize[] = ['1K', '2K', '4K'];

@@ -17,6 +17,11 @@ const KIND_STYLES: Record<ToastKind, { wrap: string; icon: string }> = {
     wrap: 'bg-emerald-500/90 border-emerald-400/50',
     icon: 'fa-circle-check',
   },
+  // Rate limits / quota: a calmer amber with an hourglass to signal "wait & retry".
+  warning: {
+    wrap: 'bg-amber-500/90 border-amber-400/50',
+    icon: 'fa-hourglass-half',
+  },
 };
 
 /**

@@ -41,12 +41,12 @@ function clean(base64: string): string {
   return base64.split(',')[1] || base64;
 }
 
-/** Fetches a remote image URL and inlines it as a base64 data URL. */
-async function urlToDataUrl(url: string): Promise<string> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Model Refusal: failed to fetch generated image (${res.status})`);
-  const blob = await res.blob();
-  return await new Promise<string>((resolve, reject) => {
+/** Same-origin Vercel proxy that forwards to fal.run (see api/fal.ts). */
+const FAL_PROXY_PATH = '/api/fal';
+
+/** Reads a Blob into a base64 data URL. */
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result as string);
     reader.onerror = () => reject(new Error('EMPTY_RESPONSE: could not read generated image.'));
@@ -59,11 +59,17 @@ export class FALProvider implements AIProvider {
   private baseUrl: string;
   private imageModelId: string;
   private textModelId: string;
+  private useProxy: boolean;
 
   constructor(private endpoint: ResolvedEndpoint) {
     this.baseUrl = (endpoint.baseUrl || PROVIDERS.fal.defaultBaseUrl).replace(/\/$/, '');
     this.imageModelId = endpoint.imageModelId || PROVIDERS.fal.defaultImageModel;
     this.textModelId = endpoint.textModelId || PROVIDERS.fal.defaultTextModel;
+    // Browsers can't call fal.run directly (no CORS). When using the default
+    // fal endpoint in a browser, route through the bundled /api/fal proxy. A
+    // custom baseUrl is treated as the user's own CORS-enabled proxy and called
+    // directly with an Authorization header.
+    this.useProxy = typeof window !== 'undefined' && this.baseUrl === PROVIDERS.fal.defaultBaseUrl;
   }
 
   private headers(): Record<string, string> {
@@ -75,11 +81,21 @@ export class FALProvider implements AIProvider {
 
   /** POSTs to a fal model endpoint, normalizing failures to the shared contract. */
   private async run(modelId: string, body: unknown): Promise<any> {
-    const res = await fetch(`${this.baseUrl}/${modelId}`, {
-      method: 'POST',
-      headers: this.headers(),
-      body: JSON.stringify(body),
-    });
+    const res = this.useProxy
+      ? await fetch(FAL_PROXY_PATH, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-fal-key': this.endpoint.apiKey,
+            'x-fal-target': modelId,
+          },
+          body: JSON.stringify(body),
+        })
+      : await fetch(`${this.baseUrl}/${modelId}`, {
+          method: 'POST',
+          headers: this.headers(),
+          body: JSON.stringify(body),
+        });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       if (
@@ -91,6 +107,14 @@ export class FALProvider implements AIProvider {
       throw new Error(`Model Refusal: ${text.slice(0, 120)}...`);
     }
     return res.json();
+  }
+
+  /** Fetches a fal-hosted result image (via the proxy when enabled) as a data URL. */
+  private async fetchImage(url: string): Promise<string> {
+    const target = this.useProxy ? `${FAL_PROXY_PATH}?image=${encodeURIComponent(url)}` : url;
+    const res = await fetch(target);
+    if (!res.ok) throw new Error(`Model Refusal: failed to fetch generated image (${res.status})`);
+    return blobToDataUrl(await res.blob());
   }
 
   async generateImage(req: ImageGenRequest): Promise<ImageGenResult> {
@@ -105,7 +129,7 @@ export class FALProvider implements AIProvider {
     const url = json?.images?.[0]?.url;
     if (!url) throw new Error('EMPTY_RESPONSE: No image data was returned.');
     // fal returns hosted URLs; inline so the WebP pipeline isn't CORS-blocked.
-    const dataUrl = await urlToDataUrl(url);
+    const dataUrl = await this.fetchImage(url);
     // fal image endpoints report no token usage.
     return { url: dataUrl, inputTokens: 0, outputTokens: 0 };
   }
