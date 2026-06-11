@@ -235,7 +235,7 @@ export const TuningControls: React.FC<TuningProps> = ({
 };
 
 /** Reads the active key's provider + image model from storage (defaults to Gemini). */
-function useActiveEndpoint(): { provider: ProviderType; imageModelId?: string } {
+export function useActiveEndpoint(): { provider: ProviderType; imageModelId?: string } {
   const [info, setInfo] = React.useState<{ provider: ProviderType; imageModelId?: string }>({
     provider: 'gemini',
   });
