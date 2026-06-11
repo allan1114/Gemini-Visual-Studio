@@ -73,7 +73,7 @@ const GenerateView: React.FC<GenerateViewProps> = ({
     }
   };
 
-  const { isLoading, previews, error, generateSingle, setPreviews } =
+  const { isLoading, previews, generateSingle, setPreviews } =
     useImageSynthesis(onStatsUpdate);
   const promptFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -496,11 +496,6 @@ const GenerateView: React.FC<GenerateViewProps> = ({
                 <i className="fa-solid fa-trash"></i>
               </button>
             </div>
-          </div>
-        )}
-        {error && (
-          <div className="p-6 bg-red-500/10 border border-red-500/20 text-red-400 rounded-[1.5rem] text-xs font-bold animate-in slide-in-from-top">
-            <i className="fa-solid fa-circle-exclamation mr-2"></i> {error}
           </div>
         )}
       </div>

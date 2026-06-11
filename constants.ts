@@ -33,6 +33,15 @@ export const PROVIDERS = {
     defaultImageModel: 'gpt-image-1',
     defaultTextModel: 'gpt-4o-mini',
   },
+  // fal.ai uses its own request shape (POST https://fal.run/{model-id} with an
+  // "Authorization: Key <key>" header), not the OpenAI schema — handled by FALProvider.
+  fal: {
+    label: 'fal.ai',
+    defaultBaseUrl: 'https://fal.run',
+    defaultImageModel: 'fal-ai/flux/dev',
+    // Text/vision routed through fal-ai/any-llm; this is the any-llm `model` value.
+    defaultTextModel: 'google/gemini-flash-1.5',
+  },
 } as const;
 
 export const ASPECT_RATIOS: AspectRatio[] = ['1:1', '3:4', '4:3', '9:16', '16:9'];

@@ -3,6 +3,8 @@ import JSZip from 'jszip';
 import { View, PromptEntry, ModelChoice, User, Language, Preset, UsageStats, Member, GenerationConfig, AppError } from './types';
 import { STORAGE_KEYS, APP_VERSION } from './constants';
 import Sidebar from './components/Sidebar';
+import ToastHost from './components/ToastHost';
+import { showToast } from './utils/toast';
 import { DBService } from './services/dbService';
 import { StorageService } from './services/storageService';
 import { ImageProcessingService } from './services/imageProcessingService';
@@ -39,7 +41,7 @@ const TRANSLATIONS = {
     noAccount: "Don't have an account?", alreadyHaveAccount: "Already have an account?", emptyStudio: "Studio empty.", searchPlaceholder: "Search...",
     transformPhoto: "Transform Photo", createFromScratch: "Create from Description", bulkDownload: "Download ZIP", promptRequired: "Prompt is required.",
     importSuccess: "Import success.", importError: "Import error.", help: "Help", pickOne: "Select result:", generatingMany: "Creating {current}/5...",
-    engineFlash: "Gemini 3.0 Flash", enginePro: "Gemini 3.0 Pro", quotaError: "API limit reached.", dropHint: "Drag tags here", importData: "Import Data",
+    engineFlash: "Gemini 3.0 Flash", enginePro: "Gemini 3.0 Pro", engineImagen: "Imagen 4 (Free)", engineImagenFast: "Imagen 4 Fast (Free)", engineImagenUltra: "Imagen 4 Ultra (Free)", quotaError: "API limit reached.", dropHint: "Drag tags here", importData: "Import Data",
     exportData: "Export Data", bulkDelete: "Delete Selected", zipping: "Creating ZIP...", selectedCount: "{count} items selected", memberDb: "Members Database", 
     helpTitle: "Studio Master Guide", helpClose: "Return to Studio",
     helpIntro: "Welcome to Gemini Visual Studio. Master high-end AI synthesis with these steps:",
@@ -80,7 +82,7 @@ const TRANSLATIONS = {
     noAccount: "還沒有帳號？", alreadyHaveAccount: "已經有帳號？", emptyStudio: "工作室暫無內容。", searchPlaceholder: "搜索...",
     transformPhoto: "照片轉換", createFromScratch: "文字創建", bulkDownload: "打包下載", promptRequired: "請輸入提示詞。",
     importSuccess: "導入成功。", importError: "導入失敗。", help: "手冊", pickOne: "選擇作品：", generatingMany: "合成中 {current}/5...",
-    engineFlash: "Gemini 3.0 Flash", enginePro: "Gemini 3.0 Pro", quotaError: "配額已滿。", dropHint: "將元素拖曳至此處組合視覺序列", importData: "導入數據",
+    engineFlash: "Gemini 3.0 Flash", enginePro: "Gemini 3.0 Pro", engineImagen: "Imagen 4（免費）", engineImagenFast: "Imagen 4 Fast（免費）", engineImagenUltra: "Imagen 4 Ultra（免費）", quotaError: "配額已滿。", dropHint: "將元素拖曳至此處組合視覺序列", importData: "導入數據",
     exportData: "導出數據", bulkDelete: "刪除選中項", zipping: "正在打包...", selectedCount: "已選中 {count} 個項目", memberDb: "成員數據庫", 
     helpTitle: "進階使用手冊", helpClose: "返回工作室",
     helpIntro: "歡迎使用 Gemini Visual Studio。透過以下步驟掌握專業級 AI 合成：",
@@ -188,6 +190,16 @@ const App: React.FC = () => {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const t = TRANSLATIONS[language];
+
+  // Surface network errors as a top-center auto-dismissing toast. networkError
+  // acts as a one-shot trigger so the many existing setNetworkError call sites
+  // route through the toast bus without change.
+  useEffect(() => {
+    if (networkError) {
+      showToast(networkError, 'error');
+      setNetworkError(null);
+    }
+  }, [networkError]);
 
   const hasInitialized = useRef(false);
   const currentUserRef = useRef<User | null>(null);
@@ -647,15 +659,7 @@ const App: React.FC = () => {
     <div className="flex h-screen overflow-hidden bg-[#050505] text-gray-100 relative">
       <Sidebar currentView={view} onViewChange={setView} user={user} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onSyncClick={handleCloudSync} isSyncing={isSyncing} lastSynced={lastSynced} t={t} />
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {networkError && (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[150] flex items-center gap-3 bg-red-500/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-red-400/50 animate-in slide-in-from-top duration-300">
-            <i className="fa-solid fa-triangle-exclamation"></i>
-            <span className="text-xs font-bold">{networkError}</span>
-            <button onClick={() => setNetworkError(null)} className="ml-2 hover:text-white/70">
-              <i className="fa-solid fa-xmark"></i>
-            </button>
-          </div>
-        )}
+        <ToastHost />
         <header className="px-8 py-5 border-b border-white/5 flex justify-between items-center bg-[#0a0a0a]/50 backdrop-blur-xl z-10">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsSidebarOpen(true)} className="md:hidden"><i className="fa-solid fa-bars"></i></button>

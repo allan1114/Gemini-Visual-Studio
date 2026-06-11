@@ -9,6 +9,7 @@ import PhotoEditorTools from './PhotoEditorTools';
 import { GeminiService } from '../services/geminiService';
 import { EDIT_FILTERS } from '../constants';
 import { ImageProcessingService } from '../services/imageProcessingService';
+import { showToast } from '../utils/toast';
 
 interface EditViewProps {
   language: Language;
@@ -50,7 +51,7 @@ const EditView: React.FC<EditViewProps> = ({ language, t, usageStats, onStatsUpd
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isRemovingBg, setIsRemovingBg] = useState(false);
 
-  const { isLoading: isSynthesisLoading, previews, error, generateInpaint, generateSingle, setPreviews, setError } = useImageSynthesis(onStatsUpdate);
+  const { isLoading: isSynthesisLoading, previews, generateInpaint, generateSingle, setPreviews, setError } = useImageSynthesis(onStatsUpdate);
   const isLoading = isSynthesisLoading || isSmartAnalyzing || isSuggesting || isRemovingBg;
 
   const onAddTag = (value: string, label: string, icon?: string, color?: string) => {
@@ -62,7 +63,7 @@ const EditView: React.FC<EditViewProps> = ({ language, t, usageStats, onStatsUpd
     
     const isLocalMode = editMode === 'area' || editMode === 'advanced';
     if (isLocalMode && !currentMask) {
-      setError("Please draw a mask on the area you want to edit first.");
+      showToast("Please draw a mask on the area you want to edit first.", 'error');
       return;
     }
 
@@ -148,7 +149,7 @@ const EditView: React.FC<EditViewProps> = ({ language, t, usageStats, onStatsUpd
       }).catch(() => {});
       
     } catch (err: any) {
-      setError(err.message || "Background removal failed.");
+      showToast(err.message || "Background removal failed.", 'error');
     } finally {
       setIsRemovingBg(false);
     }
@@ -382,12 +383,6 @@ const EditView: React.FC<EditViewProps> = ({ language, t, usageStats, onStatsUpd
         </div>
 
         {user && <PromptBuilder onAdd={onAddTag} language={language} />}
-
-        {error && (
-          <div className="p-6 bg-red-500/10 border border-red-500/20 text-red-400 rounded-3xl text-xs font-bold animate-in slide-in-from-top duration-300">
-            <i className="fa-solid fa-triangle-exclamation mr-2"></i> {error}
-          </div>
-        )}
 
         {previews.length > 0 && (
           <div className="glass p-8 rounded-[3rem] space-y-8 shadow-2xl bg-gradient-to-b from-transparent to-indigo-500/5 border border-indigo-500/20">

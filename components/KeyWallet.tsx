@@ -78,9 +78,11 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
       isActive: keys.length === 0,
       status: 'unknown',
       provider: newKey.provider,
-      ...(newKey.provider === 'openai-compatible'
+      // Non-Gemini providers (OpenAI-compatible, fal.ai) carry an endpoint +
+      // model overrides; fall back to each provider's defaults when left blank.
+      ...(newKey.provider !== 'gemini'
         ? {
-            baseUrl: newKey.baseUrl.trim() || PROVIDERS['openai-compatible'].defaultBaseUrl,
+            baseUrl: newKey.baseUrl.trim() || PROVIDERS[newKey.provider].defaultBaseUrl,
             imageModelId: newKey.imageModelId.trim() || undefined,
             textModelId: newKey.textModelId.trim() || undefined,
           }
@@ -136,7 +138,8 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
         <div>
           <h2 className="text-3xl font-black tracking-tight text-white mb-2">Key Wallet</h2>
           <p className="text-gray-500 text-sm font-medium">
-            Manage multiple AI provider keys (Gemini & OpenAI-compatible). Encrypted on this device.
+            Manage multiple AI provider keys (Gemini, OpenAI-compatible & fal.ai). Encrypted on this
+            device.
           </p>
         </div>
         <div className="flex gap-3">
@@ -308,10 +311,16 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
                   value={newKey.key}
                   onChange={(e) => setNewKey({ ...newKey, key: e.target.value })}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
-                  placeholder={newKey.provider === 'gemini' ? 'AIza...' : 'sk-...'}
+                  placeholder={
+                    newKey.provider === 'gemini'
+                      ? 'AIza...'
+                      : newKey.provider === 'fal'
+                        ? 'xxxxxxxx-xxxx-...:xxxxxxxx'
+                        : 'sk-...'
+                  }
                 />
               </div>
-              {newKey.provider === 'openai-compatible' && (
+              {newKey.provider !== 'gemini' && (
                 <>
                   <div>
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">
@@ -322,7 +331,7 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
                       value={newKey.baseUrl}
                       onChange={(e) => setNewKey({ ...newKey, baseUrl: e.target.value })}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
-                      placeholder={PROVIDERS['openai-compatible'].defaultBaseUrl}
+                      placeholder={PROVIDERS[newKey.provider].defaultBaseUrl}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -335,7 +344,7 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
                         value={newKey.imageModelId}
                         onChange={(e) => setNewKey({ ...newKey, imageModelId: e.target.value })}
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
-                        placeholder={PROVIDERS['openai-compatible'].defaultImageModel}
+                        placeholder={PROVIDERS[newKey.provider].defaultImageModel}
                       />
                     </div>
                     <div>
@@ -347,7 +356,7 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
                         value={newKey.textModelId}
                         onChange={(e) => setNewKey({ ...newKey, textModelId: e.target.value })}
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
-                        placeholder={PROVIDERS['openai-compatible'].defaultTextModel}
+                        placeholder={PROVIDERS[newKey.provider].defaultTextModel}
                       />
                     </div>
                   </div>
