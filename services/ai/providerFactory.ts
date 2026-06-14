@@ -1,4 +1,4 @@
-import { resolveActiveEndpoint } from './endpointResolver';
+import { resolveActiveEndpoint, ForcedEndpoint } from './endpointResolver';
 import { GeminiProvider } from './GeminiProvider';
 import { OpenAICompatibleProvider } from './OpenAICompatibleProvider';
 import { FALProvider } from './FALProvider';
@@ -16,8 +16,8 @@ const registry: Record<ProviderType, (e: ResolvedEndpoint) => AIProvider> = {
  * Resolves the active endpoint and instantiates the matching provider. Throws
  * "API_KEY_MISSING" when no key is configured (preserved sentinel).
  */
-export async function getActiveProvider(forceKey?: string): Promise<AIProvider> {
-  const endpoint = await resolveActiveEndpoint(forceKey);
+export async function getActiveProvider(forced?: ForcedEndpoint): Promise<AIProvider> {
+  const endpoint = await resolveActiveEndpoint(forced);
   const factory = registry[endpoint.type] || registry.gemini;
   return factory(endpoint);
 }

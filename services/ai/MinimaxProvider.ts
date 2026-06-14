@@ -26,10 +26,13 @@ import {
  *   (MiniMax is text-to-image first); failures are normalized to the shared
  *   SAFETY_BLOCK / Model Refusal contract so the Pro->Flash fallback still holds.
  *
- * Note: like the OpenAI-compatible provider, this calls the vendor host directly
- * from the browser. If `api.minimax.io` lacks permissive CORS headers, hosted
- * builds may be blocked — users can point the Key Wallet "Base URL" override at
- * their own CORS-enabled proxy.
+ * CORS: MiniMax does not send CORS headers, so browsers can't call it directly.
+ * When the default endpoint is used in a browser, requests are routed through
+ * the bundled same-origin `/api/minimax` proxy (see api/minimax.ts), mirroring
+ * the fal.ai handling. A custom `baseUrl` is treated as the user's own
+ * CORS-enabled proxy and called directly with a Bearer header. (The static
+ * GitHub Pages host has no serverless function, so there the Base URL override
+ * is the only way to supply a working proxy.)
  */
 
 function clean(base64: string): string {
@@ -47,11 +50,18 @@ export class MinimaxProvider implements AIProvider {
   private baseUrl: string;
   private imageModelId: string;
   private textModelId: string;
+  private useProxy: boolean;
 
   constructor(private endpoint: ResolvedEndpoint) {
     this.baseUrl = (endpoint.baseUrl || PROVIDERS.minimax.defaultBaseUrl).replace(/\/$/, '');
     this.imageModelId = endpoint.imageModelId || PROVIDERS.minimax.defaultImageModel;
     this.textModelId = endpoint.textModelId || PROVIDERS.minimax.defaultTextModel;
+    // Browsers can't call api.minimax.io directly (no CORS). When using the
+    // default endpoint in a browser, route through the bundled /api/minimax
+    // proxy. A custom baseUrl is treated as the user's own CORS-enabled proxy
+    // and called directly with an Authorization header.
+    this.useProxy =
+      typeof window !== 'undefined' && this.baseUrl === PROVIDERS.minimax.defaultBaseUrl;
   }
 
   private headers(): Record<string, string> {
@@ -62,11 +72,21 @@ export class MinimaxProvider implements AIProvider {
   }
 
   private async post(path: string, body: unknown): Promise<any> {
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: this.headers(),
-      body: JSON.stringify(body),
-    });
+    const res = this.useProxy
+      ? await fetch('/api/minimax', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-mm-key': this.endpoint.apiKey,
+            'x-mm-path': path.replace(/^\//, ''),
+          },
+          body: JSON.stringify(body),
+        })
+      : await fetch(`${this.baseUrl}${path}`, {
+          method: 'POST',
+          headers: this.headers(),
+          body: JSON.stringify(body),
+        });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       // Normalize content-policy rejections to the shared safety contract.
@@ -98,7 +118,6 @@ export class MinimaxProvider implements AIProvider {
       aspect_ratio: req.aspectRatio,
       response_format: 'base64',
       n: 1,
-      ...(req.seed != null ? { seed: req.seed } : {}),
     });
     const b64 = json?.data?.image_base64?.[0];
     if (!b64) throw new Error('EMPTY_RESPONSE: No image data was returned.');

@@ -1,4 +1,4 @@
-import { ImageSize, AspectRatio, ModelChoice } from '../types';
+import { ImageSize, AspectRatio, ModelChoice, ApiKeyRecord } from '../types';
 import { ErrorHandler } from '../utils/errorHandler';
 import { validatePrompt, validateImageSize } from '../utils/validation';
 import { imageGenerationLimiter } from '../utils/rateLimiter';
@@ -77,8 +77,20 @@ export class GeminiService {
     return ErrorHandler.withRetry(fn, maxRetries, 2000);
   }
 
-  static async testKey(key: string): Promise<boolean> {
-    const provider = await getActiveProvider(key);
+  static async testKey(record: ApiKeyRecord | string): Promise<boolean> {
+    // A bare string is a Gemini key (back-compat). A record carries its provider
+    // and endpoint settings so non-Gemini keys are tested against the right backend.
+    const forced =
+      typeof record === 'string'
+        ? record
+        : {
+            apiKey: record.key,
+            type: record.provider,
+            baseUrl: record.baseUrl,
+            imageModelId: record.imageModelId,
+            textModelId: record.textModelId,
+          };
+    const provider = await getActiveProvider(forced);
     return provider.testKey();
   }
 
