@@ -42,6 +42,15 @@ export const PROVIDERS = {
     // Text/vision routed through fal-ai/any-llm; this is the any-llm `model` value.
     defaultTextModel: 'google/gemini-flash-1.5',
   },
+  // MiniMax (international edition). Image generation uses its own
+  // /image_generation shape; text/vision use the OpenAI-compatible
+  // /text/chatcompletion_v2 endpoint — both handled by MinimaxProvider.
+  minimax: {
+    label: 'MiniMax',
+    defaultBaseUrl: 'https://api.minimax.io/v1',
+    defaultImageModel: 'image-01',
+    defaultTextModel: 'MiniMax-Text-01',
+  },
 } as const;
 
 /** Font Awesome icon (solid) representing each provider in the UI. */
@@ -49,6 +58,7 @@ export const PROVIDER_ICONS: Record<ProviderType, string> = {
   gemini: 'fa-gem',
   'openai-compatible': 'fa-plug',
   fal: 'fa-bolt',
+  minimax: 'fa-wand-magic-sparkles',
 };
 
 export const ASPECT_RATIOS: AspectRatio[] = ['1:1', '3:4', '4:3', '9:16', '16:9'];

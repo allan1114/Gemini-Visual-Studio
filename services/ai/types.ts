@@ -5,7 +5,7 @@ import { AspectRatio, ImageSize, ModelChoice } from '../../types';
  * Gemini; this enum is the seam that lets the UI stay identical while routing
  * requests to different endpoints under the hood.
  */
-export type ProviderType = 'gemini' | 'openai-compatible' | 'fal';
+export type ProviderType = 'gemini' | 'openai-compatible' | 'fal' | 'minimax';
 
 /** Normalized image result returned by every provider. */
 export interface ImageGenResult {
