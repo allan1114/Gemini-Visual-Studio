@@ -2,12 +2,14 @@ import { resolveActiveEndpoint } from './endpointResolver';
 import { GeminiProvider } from './GeminiProvider';
 import { OpenAICompatibleProvider } from './OpenAICompatibleProvider';
 import { FALProvider } from './FALProvider';
+import { MinimaxProvider } from './MinimaxProvider';
 import { AIProvider, ProviderType, ResolvedEndpoint } from './types';
 
 const registry: Record<ProviderType, (e: ResolvedEndpoint) => AIProvider> = {
   gemini: (e) => new GeminiProvider(e),
   'openai-compatible': (e) => new OpenAICompatibleProvider(e),
   fal: (e) => new FALProvider(e),
+  minimax: (e) => new MinimaxProvider(e),
 };
 
 /**

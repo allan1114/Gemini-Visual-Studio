@@ -10,7 +10,7 @@ export interface User {
 }
 
 /** Provider backend an API key targets. Re-exported from services/ai/types. */
-export type ProviderType = 'gemini' | 'openai-compatible' | 'fal';
+export type ProviderType = 'gemini' | 'openai-compatible' | 'fal' | 'minimax';
 
 export interface ApiKeyRecord {
   id: string;
