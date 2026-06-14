@@ -120,7 +120,7 @@ const KeyWallet: React.FC<KeyWalletProps> = ({ t }) => {
 
   const handleTest = async (record: ApiKeyRecord) => {
     setTestingId(record.id);
-    const success = await GeminiService.testKey(record.key);
+    const success = await GeminiService.testKey(record);
     const updated = keys.map((k) =>
       k.id === record.id
         ? {

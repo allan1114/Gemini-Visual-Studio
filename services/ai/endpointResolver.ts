@@ -14,9 +14,34 @@ import { ResolvedEndpoint } from './types';
  * "API_KEY_MISSING" sentinel (matched downstream by useImageSynthesis) when no
  * key can be found.
  */
-export async function resolveActiveEndpoint(forceKey?: string): Promise<ResolvedEndpoint> {
-  if (forceKey) {
-    return { type: 'gemini', apiKey: forceKey };
+/**
+ * A forced endpoint override used by the Key Wallet "test" flow. A bare string
+ * is treated as a Gemini key (back-compat); an object carries the provider and
+ * its endpoint settings so non-Gemini keys are tested against the right backend.
+ */
+export type ForcedEndpoint =
+  | string
+  | {
+      apiKey: string;
+      type?: ProviderType;
+      baseUrl?: string;
+      imageModelId?: string;
+      textModelId?: string;
+    };
+
+export async function resolveActiveEndpoint(forced?: ForcedEndpoint): Promise<ResolvedEndpoint> {
+  if (forced) {
+    if (typeof forced === 'string') {
+      return { type: 'gemini', apiKey: forced };
+    }
+    const provider: ProviderType = forced.type ?? 'gemini';
+    return {
+      type: provider,
+      apiKey: forced.apiKey,
+      baseUrl: forced.baseUrl || PROVIDERS[provider]?.defaultBaseUrl || undefined,
+      imageModelId: forced.imageModelId,
+      textModelId: forced.textModelId,
+    };
   }
 
   const keysRaw = localStorage.getItem(STORAGE_KEYS.API_KEYS);

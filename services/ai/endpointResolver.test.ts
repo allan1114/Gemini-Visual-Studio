@@ -12,9 +12,17 @@ describe('resolveActiveEndpoint', () => {
     vi.unstubAllEnvs();
   });
 
-  it('uses a forced key as a gemini endpoint', async () => {
+  it('uses a forced key string as a gemini endpoint', async () => {
     const ep = await resolveActiveEndpoint('forced-123');
     expect(ep).toEqual({ type: 'gemini', apiKey: 'forced-123' });
+  });
+
+  it('uses a forced endpoint object to test against the right provider', async () => {
+    const ep = await resolveActiveEndpoint({ apiKey: 'mm-key', type: 'minimax' });
+    expect(ep.type).toBe('minimax');
+    expect(ep.apiKey).toBe('mm-key');
+    // Base URL defaults from the provider descriptor when not overridden.
+    expect(ep.baseUrl).toBe('https://api.minimax.io/v1');
   });
 
   it('defaults legacy records without a provider to gemini', async () => {

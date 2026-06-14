@@ -34,6 +34,30 @@ describe('MinimaxProvider.generateImage', () => {
     });
   });
 
+  it('routes through the /api/minimax proxy when running in a browser with the default endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { image_base64: ['abc123'] }, base_resp: { status_code: 0 } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    // Simulate a browser so the provider chooses the same-origin proxy path.
+    vi.stubGlobal('window', {} as Window & typeof globalThis);
+
+    const provider = new MinimaxProvider({ type: 'minimax', apiKey: 'mm-key-123' });
+    await provider.generateImage({
+      prompt: 'a cat',
+      aspectRatio: '1:1',
+      imageSize: '1K',
+      model: 'flash',
+    });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/minimax');
+    const headers = init.headers as Record<string, string>;
+    expect(headers['x-mm-key']).toBe('mm-key-123');
+    expect(headers['x-mm-path']).toBe('image_generation');
+  });
+
   it('throws SAFETY_BLOCK on a 400 with content-policy text', async () => {
     vi.stubGlobal(
       'fetch',
