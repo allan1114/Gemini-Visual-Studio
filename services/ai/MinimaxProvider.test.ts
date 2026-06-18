@@ -41,7 +41,7 @@ describe('MinimaxProvider.generateImage', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     // Simulate a browser so the provider chooses the same-origin proxy path.
-    vi.stubGlobal('window', {} as Window & typeof globalThis);
+    vi.stubGlobal('window', {} as typeof globalThis);
 
     const provider = new MinimaxProvider({ type: 'minimax', apiKey: 'mm-key-123' });
     await provider.generateImage({
@@ -56,6 +56,26 @@ describe('MinimaxProvider.generateImage', () => {
     const headers = init.headers as Record<string, string>;
     expect(headers['x-mm-key']).toBe('mm-key-123');
     expect(headers['x-mm-path']).toBe('image_generation');
+  });
+
+  it('truncates image prompts to the MiniMax 1500-character limit', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { image_base64: ['abc123'] }, base_resp: { status_code: 0 } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new MinimaxProvider({ type: 'minimax', apiKey: 'k' });
+    await provider.generateImage({
+      prompt: 'x'.repeat(2000),
+      aspectRatio: '1:1',
+      imageSize: '1K',
+      model: 'flash',
+    });
+
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.prompt).toHaveLength(1499);
   });
 
   it('throws SAFETY_BLOCK on a 400 with content-policy text', async () => {
