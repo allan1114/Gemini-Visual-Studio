@@ -45,6 +45,14 @@ interface MinimaxBaseResp {
   status_msg?: string;
 }
 
+const MINIMAX_IMAGE_PROMPT_LIMIT = 1499;
+
+function limitImagePrompt(prompt: string): string {
+  return prompt.length > MINIMAX_IMAGE_PROMPT_LIMIT
+    ? prompt.slice(0, MINIMAX_IMAGE_PROMPT_LIMIT)
+    : prompt;
+}
+
 export class MinimaxProvider implements AIProvider {
   readonly type = 'minimax' as const;
   private baseUrl: string;
@@ -111,7 +119,10 @@ export class MinimaxProvider implements AIProvider {
 
   async generateImage(req: ImageGenRequest): Promise<ImageGenResult> {
     // MiniMax's image API has no system-instruction field — fold it into the prompt.
-    const prompt = req.systemInstruction ? `${req.systemInstruction}\n\n${req.prompt}` : req.prompt;
+    const rawPrompt = req.systemInstruction
+      ? `${req.systemInstruction}\n\n${req.prompt}`
+      : req.prompt;
+    const prompt = limitImagePrompt(rawPrompt);
     const json = await this.post('/image_generation', {
       model: this.imageModelId,
       prompt,
