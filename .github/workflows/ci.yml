@@ -1,0 +1,46 @@
+name: CI
+
+# Runs the same quality gates as the deploy workflow (lint, type-check,
+# tests, build) on every pull request, so broken code can't reach `main`
+# and silently block GitHub Pages deploys. The deploy workflow only runs
+# on push to `main`, which is why it must never be the first place a
+# lint/test failure is discovered.
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gates:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint & type-check
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test -- --run
+
+      - name: Build
+        run: npm run build
