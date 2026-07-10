@@ -74,10 +74,14 @@ const EditView: React.FC<EditViewProps> = ({
     setError,
   } = useImageSynthesis(onStatsUpdate);
   const isLoading = isSynthesisLoading || isSmartAnalyzing || isSuggesting || isRemovingBg;
-  // Editing relies on Gemini-only image methods; other providers (fal.ai, OpenAI)
-  // only do text-to-image, so warn instead of letting the user hit a hard error.
+  // Whole-image editing works on Gemini (true image editing) and MiniMax
+  // (subject-reference generation that keeps the person consistent). Other
+  // providers (fal.ai, OpenAI) only do text-to-image, so warn instead of
+  // letting the user hit a hard error. MiniMax still can't do mask-based
+  // inpainting or background removal — show a softer partial-support note.
   const { provider } = useActiveEndpoint();
-  const editingUnsupported = provider !== 'gemini';
+  const editingUnsupported = provider !== 'gemini' && provider !== 'minimax';
+  const minimaxPartialSupport = provider === 'minimax';
 
   const onAddTag = (value: string, label: string, icon?: string, color?: string) => {
     setChips((prev) => [...prev, { id: crypto.randomUUID(), value, label, icon, color }]);
@@ -261,6 +265,12 @@ const EditView: React.FC<EditViewProps> = ({
           <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-400 text-xs font-bold flex items-center gap-3">
             <i className="fa-solid fa-circle-info text-base shrink-0"></i>
             <span>{t.editUnsupportedNote}</span>
+          </div>
+        )}
+        {minimaxPartialSupport && (
+          <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-indigo-300 text-xs font-bold flex items-center gap-3">
+            <i className="fa-solid fa-circle-info text-base shrink-0"></i>
+            <span>{t.editMinimaxRefNote}</span>
           </div>
         )}
         <div className="glass p-8 rounded-[2.5rem] space-y-8 border-indigo-500/10">

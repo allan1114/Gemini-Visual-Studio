@@ -49,9 +49,10 @@ const AvatarView: React.FC<AvatarViewProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
 
   const { isLoading, previews, generateSingle, setPreviews } = useImageSynthesis(onStatsUpdate);
-  // Avatar synthesis uses Gemini-only image editing; warn on other providers.
+  // Avatar synthesis needs image-in image-out: Gemini edits directly, MiniMax
+  // uses subject-reference generation. Warn on the text-to-image-only providers.
   const { provider } = useActiveEndpoint();
-  const editingUnsupported = provider !== 'gemini';
+  const editingUnsupported = provider !== 'gemini' && provider !== 'minimax';
 
   const onAddTag = (value: string, label: string, icon?: string, color?: string) => {
     setChips((prev) => [...prev, { id: crypto.randomUUID(), value, label, icon, color }]);

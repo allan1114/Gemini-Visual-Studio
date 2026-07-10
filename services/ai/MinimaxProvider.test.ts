@@ -122,6 +122,97 @@ describe('MinimaxProvider.generateImage', () => {
   });
 });
 
+describe('MinimaxProvider.editImage (subject-reference generation)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const okResponse = () => ({
+    ok: true,
+    json: async () => ({ data: { image_base64: ['ref123'] }, base_resp: { status_code: 0 } }),
+  });
+
+  it('POSTs to /image_generation with a single character subject_reference', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new MinimaxProvider({ type: 'minimax', apiKey: 'mm-key-123' });
+    const result = await provider.editImage({
+      prompt: 'the same girl by a library window',
+      aspectRatio: '16:9',
+      imageSize: '1K',
+      model: 'flash',
+      image: { base64: 'aGVsbG8=', mimeType: 'image/png' },
+    });
+
+    expect(result.url).toBe('data:image/jpeg;base64,ref123');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${PROVIDERS.minimax.defaultBaseUrl}/image_generation`);
+    const body = JSON.parse(init.body);
+    expect(body.subject_reference).toEqual([
+      { type: 'character', image_file: 'data:image/png;base64,aGVsbG8=' },
+    ]);
+    expect(body).toMatchObject({
+      model: PROVIDERS.minimax.defaultImageModel,
+      aspect_ratio: '16:9',
+      response_format: 'base64',
+    });
+  });
+
+  it('strips an existing data-URL prefix instead of double-wrapping it', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new MinimaxProvider({ type: 'minimax', apiKey: 'k' });
+    await provider.editImage({
+      prompt: 'p',
+      aspectRatio: '1:1',
+      imageSize: '1K',
+      model: 'flash',
+      image: { base64: 'data:image/jpeg;base64,Zm9v', mimeType: 'image/jpeg' },
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.subject_reference[0].image_file).toBe('data:image/jpeg;base64,Zm9v');
+  });
+
+  it('folds the system instruction into the prompt (no system field in the image API)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new MinimaxProvider({ type: 'minimax', apiKey: 'k' });
+    await provider.editImage({
+      prompt: 'user prompt',
+      systemInstruction: 'stay consistent',
+      aspectRatio: '1:1',
+      imageSize: '1K',
+      model: 'flash',
+      image: { base64: 'Zm9v', mimeType: 'image/png' },
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.prompt).toBe('stay consistent\n\nuser prompt');
+  });
+
+  it('passes a WebP reference through unchanged outside the browser (no canvas)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new MinimaxProvider({ type: 'minimax', apiKey: 'k' });
+    await provider.editImage({
+      prompt: 'p',
+      aspectRatio: '1:1',
+      imageSize: '1K',
+      model: 'flash',
+      image: { base64: 'd2VicA==', mimeType: 'image/webp' },
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.subject_reference[0].image_file).toBe('data:image/webp;base64,d2VicA==');
+  });
+});
+
 describe('MinimaxProvider.testKey', () => {
   afterEach(() => {
     vi.restoreAllMocks();

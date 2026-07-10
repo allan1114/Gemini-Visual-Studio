@@ -114,6 +114,8 @@ const TRANSLATIONS = {
     engineManagedNote: "Active provider's model — change it in the Key Wallet.",
     editUnsupportedNote:
       'The active provider only supports image generation. Switch to a Gemini key in the Key Wallet to use editing.',
+    editMinimaxRefNote:
+      'MiniMax uses your upload as a subject reference: it generates new images that keep the person consistent. Area inpainting and background removal still require a Gemini key.',
     exportData: 'Export Data',
     bulkDelete: 'Delete Selected',
     zipping: 'Creating ZIP...',
@@ -243,6 +245,8 @@ const TRANSLATIONS = {
     rateLimitHint: '已達速率限制 — 請稍候重試。',
     engineManagedNote: '目前供應商的模型 — 可於金鑰錢包更改。',
     editUnsupportedNote: '目前供應商只支援生成圖像。如需編輯功能,請於金鑰錢包切換至 Gemini key。',
+    editMinimaxRefNote:
+      'MiniMax 會以上載圖片作為主體參考圖 (Subject Reference)，生成保持人物一致的新圖像。區域修補與去背仍需 Gemini key。',
     exportData: '導出數據',
     bulkDelete: '刪除選中項',
     zipping: '正在打包...',
