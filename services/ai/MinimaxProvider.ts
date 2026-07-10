@@ -5,6 +5,7 @@ import {
   ImageGenRequest,
   ImageGenResult,
   ImageInpaintRequest,
+  ImagePart,
   ResolvedEndpoint,
   TextRequest,
   TextResult,
@@ -22,8 +23,16 @@ import {
  *   so the downstream WebP pipeline isn't tripped up.
  * - Text + vision route through the OpenAI-compatible `/text/chatcompletion_v2`
  *   endpoint, whose `model` field selects the LLM (default `MiniMax-Text-01`).
- * - Mask-based editing / inpainting / background removal are documented stubs
- *   (MiniMax is text-to-image first); failures are normalized to the shared
+ * - `editImage` is implemented as subject-reference generation: MiniMax's
+ *   `subject_reference` field takes a single reference image with a clear
+ *   subject and generates a new image that preserves the subject's key
+ *   characteristics. That matches exactly how this app uses editImage (whole
+ *   image "edit" and avatar synthesis both ask for identity-consistent
+ *   variations of an uploaded photo). MiniMax only accepts JPG/JPEG/PNG
+ *   references, so WebP sources from the app's pipeline are re-encoded to JPEG
+ *   via canvas when running in a browser.
+ * - Mask-based inpainting / background removal remain documented stubs
+ *   (MiniMax has no mask API); failures are normalized to the shared
  *   SAFETY_BLOCK / Model Refusal contract so the Pro->Flash fallback still holds.
  *
  * CORS: MiniMax does not send CORS headers, so browsers can't call it directly.
@@ -117,18 +126,22 @@ export class MinimaxProvider implements AIProvider {
     return json;
   }
 
-  async generateImage(req: ImageGenRequest): Promise<ImageGenResult> {
-    // MiniMax's image API has no system-instruction field — fold it into the prompt.
+  /** Shared /image_generation call: folds the system instruction into the
+   *  prompt (MiniMax has no system field), posts, and unwraps the base64 result. */
+  private async imageGeneration(
+    req: ImageGenRequest,
+    extra: Record<string, unknown> = {}
+  ): Promise<ImageGenResult> {
     const rawPrompt = req.systemInstruction
       ? `${req.systemInstruction}\n\n${req.prompt}`
       : req.prompt;
-    const prompt = limitImagePrompt(rawPrompt);
     const json = await this.post('/image_generation', {
       model: this.imageModelId,
-      prompt,
+      prompt: limitImagePrompt(rawPrompt),
       aspect_ratio: req.aspectRatio,
       response_format: 'base64',
       n: 1,
+      ...extra,
     });
     const b64 = json?.data?.image_base64?.[0];
     if (!b64) throw new Error('EMPTY_RESPONSE: No image data was returned.');
@@ -136,8 +149,50 @@ export class MinimaxProvider implements AIProvider {
     return { url: `data:image/jpeg;base64,${clean(b64)}`, inputTokens: 0, outputTokens: 0 };
   }
 
-  async editImage(_req: ImageEditRequest): Promise<ImageGenResult> {
-    throw new Error('NOT_SUPPORTED: Image editing is not yet implemented for MiniMax.');
+  /**
+   * MiniMax `subject_reference` only accepts JPG/JPEG/PNG. The app's storage
+   * pipeline re-encodes everything to WebP, so convert to JPEG via canvas when
+   * a DOM is available; otherwise pass the original data URL through and let
+   * the API report the failure.
+   */
+  private async toReferenceDataUrl(img: ImagePart): Promise<string> {
+    const dataUrl = `data:${img.mimeType};base64,${clean(img.base64)}`;
+    if (/jpe?g|png/i.test(img.mimeType) || typeof document === 'undefined') return dataUrl;
+    try {
+      const el = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = dataUrl;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = el.naturalWidth;
+      canvas.height = el.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return dataUrl;
+      ctx.drawImage(el, 0, 0);
+      return canvas.toDataURL('image/jpeg', 0.92);
+    } catch {
+      return dataUrl;
+    }
+  }
+
+  async generateImage(req: ImageGenRequest): Promise<ImageGenResult> {
+    return this.imageGeneration(req);
+  }
+
+  /**
+   * Generation with a reference image: the source image goes into MiniMax's
+   * `subject_reference` (single image, `type: "character"`), and the model
+   * produces a new image that preserves the subject's key characteristics —
+   * the identity-consistent variation the edit/avatar flows ask for.
+   */
+  async editImage(req: ImageEditRequest): Promise<ImageGenResult> {
+    return this.imageGeneration(req, {
+      subject_reference: [
+        { type: 'character', image_file: await this.toReferenceDataUrl(req.image) },
+      ],
+    });
   }
 
   async inpaintImage(_req: ImageInpaintRequest): Promise<ImageGenResult> {
