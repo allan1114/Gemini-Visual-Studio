@@ -1,5 +1,5 @@
 /**
- * MiniMax serverless proxy (Vercel Edge Function).
+ * MiniMax serverless proxy (Vercel Node.js Function).
  *
  * MiniMax's API (https://api.minimax.io) does not send CORS headers, so the
  * browser cannot call it directly. This same-origin endpoint forwards requests
@@ -16,7 +16,10 @@
  * proxied so this can't act as an open proxy.
  */
 
-export const config = { runtime: 'edge' };
+// Image generation commonly takes longer than the Edge runtime's response-start
+// limit. Use the Node.js runtime and give MiniMax enough time to finish instead
+// of letting Vercel terminate otherwise healthy requests with a 504.
+export const maxDuration = 300;
 
 const MINIMAX_BASE = 'https://api.minimax.io/v1';
 

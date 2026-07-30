@@ -4,6 +4,9 @@
   "outputDirectory": "dist",
   "installCommand": "npm ci",
   "framework": null,
+  "functions": {
+    "api/minimax.ts": { "maxDuration": 300 }
+  },
   "build": { "env": { "VITE_BASE_PATH": "/" } },
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
 }
