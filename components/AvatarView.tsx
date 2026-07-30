@@ -4,14 +4,14 @@ import { TuningControls, UsageCard, useActiveEndpoint } from './Shared';
 import PromptBuilder from './PromptBuilder';
 import { GeminiService } from '../services/geminiService';
 import { ImageProcessingService } from '../services/imageProcessingService';
-import { Language, AspectRatio, ImageSize, ModelChoice, UsageStats } from '../types';
+import { Language, AspectRatio, ImageSize, ModelChoice, ProviderType, UsageStats } from '../types';
 import { AVATAR_STYLES } from '../constants';
 
 interface AvatarViewProps {
   language: Language;
   t: any;
   usageStats: UsageStats;
-  onStatsUpdate: (i: number, o: number) => void;
+  onStatsUpdate: (i: number, o: number, provider: ProviderType) => void;
   onSave: (
     items: { url: string; aiTags: string[] }[],
     prompt: string,
@@ -48,10 +48,13 @@ const AvatarView: React.FC<AvatarViewProps> = ({
   const [isSaved, setIsSaved] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const { isLoading, previews, generateSingle, setPreviews } = useImageSynthesis(onStatsUpdate);
+  const { provider } = useActiveEndpoint();
+  const { isLoading, previews, generateSingle, setPreviews } = useImageSynthesis(
+    onStatsUpdate,
+    provider
+  );
   // Avatar synthesis needs image-in image-out: Gemini edits directly, MiniMax
   // uses subject-reference generation. Warn on the text-to-image-only providers.
-  const { provider } = useActiveEndpoint();
   const editingUnsupported = provider !== 'gemini' && provider !== 'minimax';
 
   const onAddTag = (value: string, label: string, icon?: string, color?: string) => {

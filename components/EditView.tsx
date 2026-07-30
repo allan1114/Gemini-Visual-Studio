@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useImageSynthesis } from '../hooks/useImageSynthesis';
 import { TuningControls, UsageCard, useActiveEndpoint } from './Shared';
 import PromptBuilder from './PromptBuilder';
-import { Language, AspectRatio, ImageSize, ModelChoice, UsageStats } from '../types';
+import { Language, AspectRatio, ImageSize, ModelChoice, ProviderType, UsageStats } from '../types';
 import InpaintCanvas from './InpaintCanvas';
 import PhotoEditorTools from './PhotoEditorTools';
 import { GeminiService } from '../services/geminiService';
@@ -14,7 +14,7 @@ interface EditViewProps {
   language: Language;
   t: any;
   usageStats: UsageStats;
-  onStatsUpdate: (i: number, o: number) => void;
+  onStatsUpdate: (i: number, o: number, provider: ProviderType) => void;
   onSave: (
     items: { url: string; aiTags: string[] }[],
     prompt: string,
@@ -65,6 +65,7 @@ const EditView: React.FC<EditViewProps> = ({
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isRemovingBg, setIsRemovingBg] = useState(false);
 
+  const { provider } = useActiveEndpoint();
   const {
     isLoading: isSynthesisLoading,
     previews,
@@ -72,14 +73,13 @@ const EditView: React.FC<EditViewProps> = ({
     generateSingle,
     setPreviews,
     setError,
-  } = useImageSynthesis(onStatsUpdate);
+  } = useImageSynthesis(onStatsUpdate, provider);
   const isLoading = isSynthesisLoading || isSmartAnalyzing || isSuggesting || isRemovingBg;
   // Whole-image editing works on Gemini (true image editing) and MiniMax
   // (subject-reference generation that keeps the person consistent). Other
   // providers (fal.ai, OpenAI) only do text-to-image, so warn instead of
   // letting the user hit a hard error. MiniMax still can't do mask-based
   // inpainting or background removal — show a softer partial-support note.
-  const { provider } = useActiveEndpoint();
   const editingUnsupported = provider !== 'gemini' && provider !== 'minimax';
   const minimaxPartialSupport = provider === 'minimax';
 
@@ -198,7 +198,7 @@ const EditView: React.FC<EditViewProps> = ({
       };
 
       setPreviews([newPreview]);
-      onStatsUpdate(result.inputTokens, result.outputTokens);
+      onStatsUpdate(result.inputTokens, result.outputTokens, provider);
 
       // Background metadata analysis
       GeminiService.generateMetadata(webpUrl, 'image/webp')

@@ -34,6 +34,8 @@ export interface UsageStats {
   lastInputTokens: number;
   lastOutputTokens: number;
   totalTokens: number;
+  /** Successful image generations in this session, grouped by provider. */
+  providerGenerationCounts: Partial<Record<ProviderType, number>>;
 }
 
 export interface GenerationConfig {

@@ -1,15 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useImageSynthesis, ExtendedPreview } from '../hooks/useImageSynthesis';
-import { TuningControls, UsageCard } from './Shared';
+import { TuningControls, UsageCard, useActiveEndpoint } from './Shared';
 import PromptBuilder from './PromptBuilder';
-import { Language, AspectRatio, ImageSize, ModelChoice, UsageStats, PromptEntry } from '../types';
+import {
+  Language,
+  AspectRatio,
+  ImageSize,
+  ModelChoice,
+  ProviderType,
+  UsageStats,
+  PromptEntry,
+} from '../types';
 import { GeminiService } from '../services/geminiService';
 
 interface GenerateViewProps {
   language: Language;
   t: any;
   usageStats: UsageStats;
-  onStatsUpdate: (i: number, o: number) => void;
+  onStatsUpdate: (i: number, o: number, provider: ProviderType) => void;
   onSave: (
     url: string,
     prompt: string,
@@ -73,8 +81,11 @@ const GenerateView: React.FC<GenerateViewProps> = ({
     }
   };
 
-  const { isLoading, previews, generateSingle, setPreviews } =
-    useImageSynthesis(onStatsUpdate);
+  const { provider } = useActiveEndpoint();
+  const { isLoading, previews, generateSingle, setPreviews } = useImageSynthesis(
+    onStatsUpdate,
+    provider
+  );
   const promptFileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle Initial Remix Data
