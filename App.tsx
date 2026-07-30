@@ -11,6 +11,7 @@ import {
   Member,
   GenerationConfig,
   AppError,
+  ProviderType,
 } from './types';
 import { STORAGE_KEYS, APP_VERSION } from './constants';
 import Sidebar from './components/Sidebar';
@@ -141,6 +142,11 @@ const TRANSLATIONS = {
     outputAmount: 'Output',
     accuTokenCons: 'Accu. Consumption',
     consNote: '* Stats for current stage.',
+    requestAmount: 'API requests',
+    imageAmount: 'Images',
+    accuImageCons: 'Successful generations',
+    imageConsNote:
+      '* Image APIs do not report tokens. Counts show successful requests in this session; check the provider dashboard for billing.',
     uploadSource: 'Upload source photo',
     applyEdit: 'Apply AI Edit',
     savePreset: 'Save Preset',
@@ -272,6 +278,11 @@ const TRANSLATIONS = {
     outputAmount: '輸出',
     accuTokenCons: '累計消耗',
     consNote: '* 數據由當前會話統計。',
+    requestAmount: 'API 請求',
+    imageAmount: '生成圖片',
+    accuImageCons: '成功生成次數',
+    imageConsNote:
+      '* 圖像 API 不會回報 Token；此處顯示本次工作階段成功請求數，實際計費請查看供應商控制台。',
     uploadSource: '上傳照片',
     applyEdit: '應用 AI 編輯',
     savePreset: '儲存預設',
@@ -387,6 +398,7 @@ const App: React.FC = () => {
     lastInputTokens: 0,
     lastOutputTokens: 0,
     totalTokens: 0,
+    providerGenerationCounts: {},
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -681,12 +693,16 @@ const App: React.FC = () => {
     await StorageService.saveEntry(entry, currentUserId);
   };
 
-  const handleStatsUpdate = useCallback((i: number, o: number) => {
+  const handleStatsUpdate = useCallback((i: number, o: number, provider: ProviderType) => {
     setUsageStats((prev) => ({
       sessionCount: prev.sessionCount + 1,
       lastInputTokens: i,
       lastOutputTokens: o,
       totalTokens: prev.totalTokens + i + o,
+      providerGenerationCounts: {
+        ...prev.providerGenerationCounts,
+        [provider]: (prev.providerGenerationCounts[provider] || 0) + 1,
+      },
     }));
   }, []);
 

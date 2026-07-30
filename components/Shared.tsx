@@ -1,6 +1,7 @@
 import React from 'react';
 import { ModelChoice, AspectRatio, UsageStats, ProviderType } from '../types';
 import { ASPECT_RATIOS, PROVIDERS, PROVIDER_ICONS, STORAGE_KEYS } from '../constants';
+import { getUsagePresentation } from '../utils/usageStats';
 
 interface TuningProps {
   currentModel: ModelChoice;
@@ -262,6 +263,7 @@ export const UsageCard: React.FC<{ stats: UsageStats; currentModel: ModelChoice;
   t,
 }) => {
   const { provider, imageModelId } = useActiveEndpoint();
+  const usage = getUsagePresentation(stats, provider);
   // For non-Gemini providers the engine is the provider's configured image
   // model, not the Gemini Flash/Pro/Imagen choice.
   const modelLabel =
@@ -303,7 +305,7 @@ export const UsageCard: React.FC<{ stats: UsageStats; currentModel: ModelChoice;
         </div>
         <div className="flex justify-between items-center text-sm">
           <span className="text-gray-500 font-medium">{t.genCount}</span>
-          <span className="text-gray-200 font-bold">{stats.sessionCount} 次</span>
+          <span className="text-gray-200 font-bold">{usage.generationCount} 次</span>
         </div>
       </div>
       <div className="pt-4 border-t border-white/5 space-y-4">
@@ -312,15 +314,19 @@ export const UsageCard: React.FC<{ stats: UsageStats; currentModel: ModelChoice;
         </label>
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-indigo-500/[0.03] border border-white/5 p-4 rounded-2xl">
-            <span className="text-[10px] text-gray-500 font-bold block mb-1">{t.inputAmount}</span>
+            <span className="text-[10px] text-gray-500 font-bold block mb-1">
+              {usage.usesImageUsage ? t.requestAmount : t.inputAmount}
+            </span>
             <span className="text-lg font-black text-gray-200">
-              {stats.lastInputTokens.toLocaleString()}
+              {usage.lastInput.toLocaleString()}
             </span>
           </div>
           <div className="bg-indigo-500/[0.03] border border-white/5 p-4 rounded-2xl">
-            <span className="text-[10px] text-gray-500 font-bold block mb-1">{t.outputAmount}</span>
+            <span className="text-[10px] text-gray-500 font-bold block mb-1">
+              {usage.usesImageUsage ? t.imageAmount : t.outputAmount}
+            </span>
             <span className="text-lg font-black text-gray-200">
-              {stats.lastOutputTokens.toLocaleString()}
+              {usage.lastOutput.toLocaleString()}
             </span>
           </div>
         </div>
@@ -328,20 +334,25 @@ export const UsageCard: React.FC<{ stats: UsageStats; currentModel: ModelChoice;
       <div className="pt-4 border-t border-white/5 space-y-3">
         <div className="flex justify-between items-center">
           <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">
-            {t.accuTokenCons}
+            {usage.usesImageUsage ? t.accuImageCons : t.accuTokenCons}
           </label>
-          <span className="text-sm font-black text-indigo-400">
-            {stats.totalTokens.toLocaleString()}
-          </span>
+          <span className="text-sm font-black text-indigo-400">{usage.total.toLocaleString()}</span>
         </div>
         <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
           <div
             className="h-full bg-indigo-500 transition-all duration-1000 ease-out"
-            style={{ width: `${Math.min(100, (stats.totalTokens / 50000) * 100)}%` }}
+            style={{
+              width: `${Math.min(
+                100,
+                usage.usesImageUsage ? usage.total * 10 : (usage.total / 50000) * 100
+              )}%`,
+            }}
           ></div>
         </div>
       </div>
-      <p className="text-[9px] text-gray-600 leading-relaxed italic">{t.consNote}</p>
+      <p className="text-[9px] text-gray-600 leading-relaxed italic">
+        {usage.usesImageUsage ? t.imageConsNote : t.consNote}
+      </p>
     </div>
   );
 };

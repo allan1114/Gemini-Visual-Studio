@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { GeminiService } from '../services/geminiService';
 import { ImageProcessingService } from '../services/imageProcessingService';
-import { AspectRatio, ImageSize, ModelChoice } from '../types';
+import { AspectRatio, ImageSize, ModelChoice, ProviderType } from '../types';
 import { STORAGE_KEYS } from '../constants';
 import { showToast } from '../utils/toast';
 
@@ -21,7 +21,10 @@ export interface ExtendedPreview {
   aiDescription: string;
 }
 
-export const useImageSynthesis = (onStatsUpdate: (input: number, output: number) => void) => {
+export const useImageSynthesis = (
+  onStatsUpdate: (input: number, output: number, provider: ProviderType) => void,
+  provider: ProviderType = 'gemini'
+) => {
   const [isLoading, setIsLoading] = useState(false);
   const [previews, setPreviews] = useState<ExtendedPreview[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +129,7 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
         }
 
         const webpUrl = await ImageProcessingService.processToWebP(result.url);
-        onStatsUpdate(result.inputTokens, result.outputTokens);
+        onStatsUpdate(result.inputTokens, result.outputTokens, provider);
 
         const extended: ExtendedPreview = {
           id: crypto.randomUUID(),
@@ -192,7 +195,7 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
         setIsLoading(false);
       }
     },
-    [onStatsUpdate, reportError]
+    [onStatsUpdate, provider, reportError]
   );
 
   const generateInpaint = useCallback(
@@ -235,7 +238,7 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
         );
 
         const webpUrl = await ImageProcessingService.processToWebP(result.url);
-        onStatsUpdate(result.inputTokens, result.outputTokens);
+        onStatsUpdate(result.inputTokens, result.outputTokens, provider);
 
         const basePreview: ExtendedPreview = {
           id: crypto.randomUUID(),
@@ -300,7 +303,7 @@ export const useImageSynthesis = (onStatsUpdate: (input: number, output: number)
         setIsLoading(false);
       }
     },
-    [onStatsUpdate, reportError]
+    [onStatsUpdate, provider, reportError]
   );
 
   return {
